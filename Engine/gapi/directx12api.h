@@ -61,4 +61,3 @@ class DirectX12Api : public AbstractGraphicsApi {
   };
 
 }
-
