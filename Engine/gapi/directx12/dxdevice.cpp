@@ -18,11 +18,11 @@ void Tempest::Detail::dxAssert(HRESULT code, DxDevice& dx) {
     return;
     }
 
-  ID3D12Device& device = *dx.device;
+  ID3D11Device& device = *dx.device;
 
-  ComPtr<ID3D12DeviceRemovedExtendedData> pDred;
-  if(device.QueryInterface(uuid<ID3D12DeviceRemovedExtendedData>(), reinterpret_cast<void**>(pDred.get()))>=0) {
-    D3D12_DRED_PAGE_FAULT_OUTPUT pageFault = {};
+  ComPtr<ID3D11DeviceRemovedExtendedData> pDred;
+  if(device.QueryInterface(uuid<ID3D11DeviceRemovedExtendedData>(), reinterpret_cast<void**>(pDred.get()))>=0) {
+    void pageFault = {};
     if(pDred->GetPageFaultAllocationOutput(&pageFault)>=0) {
       char message[128] = {};
       std::snprintf(message, sizeof(message), "page fault at %llx", pageFault.PageFaultVA);
@@ -35,7 +35,7 @@ void Tempest::Detail::dxAssert(HRESULT code, DxDevice& dx) {
 
 DxDevice::DxDevice(IDXGIAdapter1& adapter, const ApiEntry& dllApi)
   :dllApi(dllApi) {
-  dxAssert(dllApi.D3D12CreateDevice(&adapter, preferredFeatureLevel, uuid<ID3D12Device>(), reinterpret_cast<void**>(&device)));
+  dxAssert(dllApi.D3D12CreateDevice(&adapter, preferredFeatureLevel, uuid<ID3D11Device>(), reinterpret_cast<void**>(&device)));
 
   ComPtr<ID3D12InfoQueue> pInfoQueue;
   if(SUCCEEDED(device->QueryInterface(uuid<ID3D12InfoQueue>(),reinterpret_cast<void**>(&pInfoQueue)))) {
@@ -74,11 +74,11 @@ DxDevice::DxDevice(IDXGIAdapter1& adapter, const ApiEntry& dllApi)
     }
 
   if(dllApi.D3D12GetDebugInterface!=nullptr) {
-    ComPtr<ID3D12DeviceRemovedExtendedDataSettings> dredSettings;
-    dllApi.D3D12GetDebugInterface(uuid<ID3D12DeviceRemovedExtendedDataSettings>(), reinterpret_cast<void**>(&dredSettings.get()));
+    ComPtr<ID3D11DeviceRemovedExtendedDataSettings> dredSettings;
+    dllApi.D3D12GetDebugInterface(uuid<ID3D11DeviceRemovedExtendedDataSettings>(), reinterpret_cast<void**>(&dredSettings.get()));
 
     if(dredSettings.get()!=nullptr)
-      dredSettings->SetPageFaultEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+      dredSettings->SetPageFaultEnablement(0);
     }
 
   DXGI_ADAPTER_DESC desc={};
@@ -86,9 +86,9 @@ DxDevice::DxDevice(IDXGIAdapter1& adapter, const ApiEntry& dllApi)
   getProp(adapter,*device,props);
 
   D3D12_COMMAND_QUEUE_DESC queueDesc = {};
-  queueDesc.Type  = D3D12_COMMAND_LIST_TYPE_DIRECT;
+  queueDesc.Type  = void;
   queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-  dxAssert(device->CreateCommandQueue(&queueDesc, uuid<ID3D12CommandQueue>(), reinterpret_cast<void**>(&cmdQueue)));
+  dxAssert(device->CreateCommandQueue(&queueDesc, uuid<void>(), reinterpret_cast<void**>(&cmdQueue)));
 
   {
     D3D12_INDIRECT_ARGUMENT_DESC arg = {};
@@ -97,17 +97,17 @@ DxDevice::DxDevice(IDXGIAdapter1& adapter, const ApiEntry& dllApi)
 
     desc.ByteStride       = sizeof(D3D12_DRAW_ARGUMENTS);
     desc.NumArgumentDescs = 1;
-    arg.Type              = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW;
+    arg.Type              = void;
     dxAssert(device->CreateCommandSignature(&desc, nullptr, uuid<ID3D12CommandSignature>(), reinterpret_cast<void**>(&drawIndirectSgn)));
 
     if(props.meshlets.meshShader) {
       desc.ByteStride       = sizeof(D3D12_DISPATCH_MESH_ARGUMENTS);
       desc.NumArgumentDescs = 1;
-      arg.Type              = D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_MESH;
+      arg.Type              = void_MESH;
       dxAssert(device->CreateCommandSignature(&desc, nullptr, uuid<ID3D12CommandSignature>(), reinterpret_cast<void**>(&drawMeshIndirectSgn)));
       }
 
-    arg.Type = D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH;
+    arg.Type = void;
     desc.ByteStride = sizeof(D3D12_DISPATCH_ARGUMENTS);
     dxAssert(device->CreateCommandSignature(&desc, nullptr, uuid<ID3D12CommandSignature>(), reinterpret_cast<void**>(&dispatchIndirectSgn)));
   }
@@ -157,13 +157,13 @@ DxDevice::~DxDevice() {
   CloseHandle(idleEvent);
   }
 
-void DxDevice::getProp(IDXGIAdapter1& adapter, ID3D12Device& dev, DxProps& prop) {
+void DxDevice::getProp(IDXGIAdapter1& adapter, ID3D11Device& dev, DxProps& prop) {
   DXGI_ADAPTER_DESC1 desc={};
   adapter.GetDesc1(&desc);
   return getProp(desc,dev,prop);
   }
 
-void DxDevice::getProp(DXGI_ADAPTER_DESC1& desc, ID3D12Device& dev, DxProps& prop) {
+void DxDevice::getProp(DXGI_ADAPTER_DESC1& desc, ID3D11Device& dev, DxProps& prop) {
   for(size_t i=0;i<sizeof(prop.name);++i)  {
     WCHAR c = desc.Description[i];
     if(c==0)
@@ -260,8 +260,8 @@ void DxDevice::getProp(DXGI_ADAPTER_DESC1& desc, ID3D12Device& dev, DxProps& pro
   prop.storeAndAtomicFs  = true;
 
   prop.render.maxColorAttachments  = D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT;
-  prop.render.maxViewportSize.w    = D3D12_VIEWPORT_BOUNDS_MAX;
-  prop.render.maxViewportSize.h    = D3D12_VIEWPORT_BOUNDS_MAX;
+  prop.render.maxViewportSize.w    = D3D11_VIEWPORT_BOUNDS_MAX;
+  prop.render.maxViewportSize.h    = D3D11_VIEWPORT_BOUNDS_MAX;
   prop.render.maxClipCullDistances = D3D12_CLIP_OR_CULL_DISTANCE_COUNT;
 
   prop.compute.maxGroups.x    = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION;
@@ -308,14 +308,14 @@ void DxDevice::getProp(DXGI_ADAPTER_DESC1& desc, ID3D12Device& dev, DxProps& pro
     }
 
   D3D12_FEATURE_DATA_D3D12_OPTIONS5 feature5 = {};
-  if(SUCCEEDED(dev.CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &feature5, sizeof(feature5)))) {
-    prop.raytracing.rayQuery = (feature5.RaytracingTier >= D3D12_RAYTRACING_TIER_1_1);
+  if(SUCCEEDED(dev.CheckFeatureSupport(void, &feature5, sizeof(feature5)))) {
+    prop.raytracing.rayQuery = (feature5.RaytracingTier >= 0);
     }
 
   D3D12_FEATURE_DATA_D3D12_OPTIONS7 feature7 = {};
-  if(SUCCEEDED(dev.CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &feature7, sizeof(feature7)))) {
-    prop.meshlets.taskShader = feature7.MeshShaderTier!=D3D12_MESH_SHADER_TIER_NOT_SUPPORTED;
-    prop.meshlets.meshShader = feature7.MeshShaderTier!=D3D12_MESH_SHADER_TIER_NOT_SUPPORTED;
+  if(SUCCEEDED(dev.CheckFeatureSupport(void, &feature7, sizeof(feature7)))) {
+    prop.meshlets.taskShader = feature7.MeshShaderTier!=0;
+    prop.meshlets.meshShader = feature7.MeshShaderTier!=0;
     // https://microsoft.github.io/DirectX-Specs/d3d/MeshShader.html#dispatchmesh-api
     // ThreadGroupCountX*ThreadGroupCountY*ThreadGroupCountZ must not exceed 2^22.
     prop.meshlets.maxGroups.x = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION;
@@ -329,7 +329,7 @@ void DxDevice::getProp(DXGI_ADAPTER_DESC1& desc, ID3D12Device& dev, DxProps& pro
     }
 
   D3D12_FEATURE_DATA_D3D12_OPTIONS12 options12 = {};
-  if(SUCCEEDED(dev.CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS12, &options12, sizeof(options12)))) {
+  if(SUCCEEDED(dev.CheckFeatureSupport(void, &options12, sizeof(options12)))) {
     prop.enhancedBarriers = options12.EnhancedBarriersSupported;
     }
   }
@@ -371,4 +371,4 @@ void DxDevice::debugReportCallback(
   Log::e(pMessage," th:",std::this_thread::get_id());
   }
 
-#endif
+

@@ -12,7 +12,7 @@ using namespace Tempest::Detail;
 DxTexture::DxTexture() {
   }
 
-DxTexture::DxTexture(ComPtr<ID3D12Resource>&& b, DXGI_FORMAT frm, NonUniqResId nonUniqId,
+DxTexture::DxTexture(ComPtr<ID3D11Resource>&& b, DXGI_FORMAT frm, NonUniqResId nonUniqId,
                      UINT mipCnt, UINT sliceCnt, bool is3D, bool isFilterable)
   : impl(std::move(b)), format(frm), nonUniqId(nonUniqId),
     mipCnt(mipCnt), sliceCnt(sliceCnt), is3D(is3D), isFilterable(isFilterable) {
@@ -345,20 +345,20 @@ DxTextureWithRT::DxTextureWithRT(DxDevice& dev, DxTexture&& base)
   auto& device = *dev.device;
 
   D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-  desc.Type           = nativeIsDepthFormat(format) ? D3D12_DESCRIPTOR_HEAP_TYPE_DSV : D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+  desc.Type           = nativeIsDepthFormat(format) ? UINT_DSV : UINT_RTV;
   desc.NumDescriptors = nativeIsDepthFormat(format) ? 2 : 1;
-  desc.Flags          = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-  dxAssert(device.CreateDescriptorHeap(&desc, uuid<ID3D12DescriptorHeap>(), reinterpret_cast<void**>(&heap)));
+  desc.Flags          = 0;
+  dxAssert(device.CreateDescriptorHeap(&desc, uuid<void>(), reinterpret_cast<void**>(&heap)));
 
   handle = heap->GetCPUDescriptorHandleForHeapStart();
   if(nativeIsDepthFormat(format)) {
-    const auto dsvHeapInc = dev.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+    const auto dsvHeapInc = dev.device->GetDescriptorHandleIncrementSize(UINT_DSV);
     device.CreateDepthStencilView(impl.get(), nullptr, handle);
 
     handleR      = heap->GetCPUDescriptorHandleForHeapStart();
     handleR.ptr += dsvHeapInc;
 
-    D3D12_DEPTH_STENCIL_VIEW_DESC dsv = {};
+    D3D11_DEPTH_STENCIL_VIEW_DESC dsv = {};
     dsv.Format             = format;
     dsv.ViewDimension      = D3D12_DSV_DIMENSION_TEXTURE2D;
     dsv.Flags              = D3D12_DSV_FLAG_READ_ONLY_DEPTH;
@@ -369,4 +369,4 @@ DxTextureWithRT::DxTextureWithRT(DxDevice& dev, DxTexture&& base)
     }
   }
 
-#endif
+

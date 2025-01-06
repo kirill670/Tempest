@@ -1,3 +1,4 @@
+#if defined(TEMPEST_BUILD_DIRECTX11)
 #pragma once
 
 #include <Tempest/AbstractGraphicsApi>
@@ -24,8 +25,8 @@ class DxFence : public AbstractGraphicsApi::Fence {
 
     bool waitValue(UINT64 val, DWORD timeout = INFINITE);
 
-    void signal(ID3D12CommandQueue& queue);
-    void signal(ID3D12CommandQueue& queue,UINT64 val);
+    void signal(void& queue);
+    void signal(void& queue,UINT64 val);
 
     ComPtr<ID3D12Fence> impl;
     DxDevice&           device;
@@ -33,3 +34,5 @@ class DxFence : public AbstractGraphicsApi::Fence {
   };
 
 }}
+
+#endif

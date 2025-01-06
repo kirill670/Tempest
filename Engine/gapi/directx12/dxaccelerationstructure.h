@@ -1,3 +1,4 @@
+#if defined(TEMPEST_BUILD_DIRECTX11)
 #pragma once
 
 #include <Tempest/AbstractGraphicsApi>
@@ -15,10 +16,10 @@ struct DxBlasBuildCtx : AbstractGraphicsApi::BlasBuildCtx {
                     const DxBuffer& vbo, size_t vboSz, size_t stride,
                     const DxBuffer& ibo, size_t iboSz, size_t ioffset, IndexClass icls);
 
-  D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO buildSizes(DxDevice& dx) const;
-  D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS  buildCmd (DxDevice& dx, DxBuffer* scratch) const;
+  void buildSizes(DxDevice& dx) const;
+  void  buildCmd (DxDevice& dx, DxBuffer* scratch) const;
 
-  std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> geometry;
+  std::vector<void> geometry;
   };
 
 class DxAccelerationStructure : public AbstractGraphicsApi::AccelerationStructure {
@@ -41,3 +42,5 @@ class DxTopAccelerationStructure : public AbstractGraphicsApi::AccelerationStruc
 
 }
 }
+
+#endif

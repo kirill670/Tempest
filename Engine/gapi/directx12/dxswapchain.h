@@ -1,3 +1,4 @@
+#if defined(TEMPEST_BUILD_DIRECTX11)
 #pragma once
 
 #include <Tempest/AbstractGraphicsApi>
@@ -34,9 +35,9 @@ class DxSwapchain : public AbstractGraphicsApi::Swapchain {
     DXGI_FORMAT              format() const { return frm; }
 
     ComPtr<IDXGISwapChain3>                        impl;
-    std::unique_ptr<ComPtr<ID3D12Resource>[]>      views;
-    ComPtr<ID3D12DescriptorHeap>                   rtvHeap;
-    std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE[]> handles;
+    std::unique_ptr<ComPtr<ID3D11Resource>[]>      views;
+    ComPtr<void>                   rtvHeap;
+    std::unique_ptr<void*[]> handles;
 
   private:
     void               initImages();
@@ -55,3 +56,5 @@ class DxSwapchain : public AbstractGraphicsApi::Swapchain {
   };
 
 }}
+
+#endif

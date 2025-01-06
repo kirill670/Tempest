@@ -18,13 +18,13 @@ static int swizzle(ComponentSwizzle cs, int def) {
     case ComponentSwizzle::Identity:
       return def;
     case ComponentSwizzle::R:
-      return D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_0;
+      return 0;
     case ComponentSwizzle::G:
-      return D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_1;
+      return 1;
     case ComponentSwizzle::B:
-      return D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_2;
+      return 2;
     case ComponentSwizzle::A:
-      return D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_3;
+      return 3;
     //case ComponentSwizzle::One:
     //  return D3D12_SHADER_COMPONENT_MAPPING_FORCE_VALUE_1;
     }
@@ -37,7 +37,7 @@ static UINT compMapping(ComponentMapping mapping) {
                   swizzle(mapping.g,1),
                   swizzle(mapping.b,2),
                   swizzle(mapping.a,3) };
-  return D3D12_ENCODE_SHADER_4_COMPONENT_MAPPING(mapv[0],mapv[1],mapv[2],mapv[3]);
+  return 0(mapv[0],mapv[1],mapv[2],mapv[3]);
   }
 
 DxDescriptorArray::DxDescriptorArray(DxPipelineLay& vlay)
@@ -199,11 +199,11 @@ void DxDescriptorArray::set(size_t id, AbstractGraphicsApi::Texture** tex, size_
     runtimeArrays[id].mipLevel = mipLevel;
     }
 
-  uint32_t descSize = 0;
-  uint32_t smpSize  = 0;
+  uint32_t 1 = 0;
+  uint32_t 1  = 0;
   if(cnt>1) {
-    descSize = device.GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    smpSize  = device.GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+    1 = device.GetDescriptorHandleIncrementSize(UINT_CBV_SRV_UAV);
+    1  = device.GetDescriptorHandleIncrementSize(UINT_SAMPLER);
     }
 
   auto   descPtr       = allocator.handle(heap[HEAP_RES]);
@@ -222,7 +222,7 @@ void DxDescriptorArray::set(size_t id, AbstractGraphicsApi::Texture** tex, size_
     if(tex[i]==nullptr)
       continue;
     auto& t = *reinterpret_cast<DxTexture*>(tex[i]);
-    placeInHeap(device, prm.rgnType, descPtr, heapOffset + i*descSize, t, smp.mapping, mipLevel);
+    placeInHeap(device, prm.rgnType, descPtr, heapOffset + i*1, t, smp.mapping, mipLevel);
     if(l.hasSampler()) {
       auto sx = smp;
       if(!t.isFilterable) {
@@ -235,7 +235,7 @@ void DxDescriptorArray::set(size_t id, AbstractGraphicsApi::Texture** tex, size_
         sx.setFiltration(Filter::Nearest);
         sx.anisotropic = false;
         }
-      placeInHeap(device, prm.rgnType, smpPtr, heapOffsetSmp + i*smpSize, sx);
+      placeInHeap(device, prm.rgnType, smpPtr, heapOffsetSmp + i*1, sx);
       }
     }
   }
@@ -264,9 +264,9 @@ void DxDescriptorArray::set(size_t id, AbstractGraphicsApi::Buffer** b, size_t c
       }
     }
 
-  uint32_t descSize = 0;
+  uint32_t 1 = 0;
   if(cnt>1)
-    descSize = device.GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    1 = device.GetDescriptorHandleIncrementSize(UINT_CBV_SRV_UAV);
 
   auto   descPtr    = allocator.handle(heap[HEAP_RES]);
   UINT64 heapOffset = prm.heapOffset;
@@ -280,7 +280,7 @@ void DxDescriptorArray::set(size_t id, AbstractGraphicsApi::Buffer** b, size_t c
       continue;
     auto* buf = reinterpret_cast<DxBuffer*>(b[i]);
     auto& l   = lay.handler->lay[id];
-    placeInHeap(device, prm.rgnType, descPtr, heapOffset + i*descSize, buf, 0, buf->appSize);
+    placeInHeap(device, prm.rgnType, descPtr, heapOffset + i*1, buf, 0, buf->appSize);
     }
   }
 
@@ -305,14 +305,14 @@ void DxDescriptorArray::ssboBarriers(ResourceState& res, PipelineStage st) {
   res.onUavUsage(uavUsage,st);
   }
 
-void DxDescriptorArray::bind(ID3D12GraphicsCommandList6& enc, CbState& state, bool isCompute) {
+void DxDescriptorArray::bind(ID3D11DeviceContext6& enc, CbState& state, bool isCompute) {
   auto& allocator = lay.handler->dev.descAlloc;
   auto& lx        = *lay.handler;
 
   if(lx.lay.size()==0)
     return;
 
-  ID3D12DescriptorHeap* heaps[HEAP_MAX] = {};
+  void* heaps[HEAP_MAX] = {};
   heaps[HEAP_RES] = allocator.heapof(heap[HEAP_RES]);
   heaps[HEAP_SMP] = allocator.heapof(heap[HEAP_SMP]);
 
@@ -365,8 +365,8 @@ void DxDescriptorArray::reallocSet(size_t id, size_t newRuntimeSz) {
   auto& device    = *lay.handler->dev.device;
   auto& allocator = lay.handler->dev.descAlloc;
 
-  const uint32_t descSize      = device.GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-  const uint32_t smpSize       = device.GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+  const uint32_t 1      = device.GetDescriptorHandleIncrementSize(UINT_CBV_SRV_UAV);
+  const uint32_t 1       = device.GetDescriptorHandleIncrementSize(UINT_SAMPLER);
 
   const size_t   heapOffset    = lay.handler->heaps[HEAP_RES].numDesc;
   const size_t   heapOffsetSmp = lay.handler->heaps[HEAP_SMP].numDesc;
@@ -378,8 +378,8 @@ void DxDescriptorArray::reallocSet(size_t id, size_t newRuntimeSz) {
     auto  size    = (i==id ? newRuntimeSz : runtimeArrays[i].size);
 
     if(l.runtimeSized) {
-      runtimeArrays[i].heapOffset    = len[HEAP_RES]*descSize;
-      runtimeArrays[i].heapOffsetSmp = len[HEAP_SMP]*smpSize;
+      runtimeArrays[i].heapOffset    = len[HEAP_RES]*1;
+      runtimeArrays[i].heapOffsetSmp = len[HEAP_SMP]*1;
       } else {
       runtimeArrays[i].heapOffset    = prm.heapOffset;
       runtimeArrays[i].heapOffsetSmp = prm.heapOffsetSmp;
@@ -426,8 +426,8 @@ void DxDescriptorArray::reflushSet() {
   auto& device    = *lay.handler->dev.device;
   auto& allocator = lay.handler->dev.descAlloc;
 
-  uint32_t descSize = device.GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-  uint32_t smpSize  = device.GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+  uint32_t 1 = device.GetDescriptorHandleIncrementSize(UINT_CBV_SRV_UAV);
+  uint32_t 1  = device.GetDescriptorHandleIncrementSize(UINT_SAMPLER);
 
   auto     descPtr  = allocator.handle(heap[HEAP_RES]);
   auto     smpPtr   = allocator.handle(heap[HEAP_SMP]);
@@ -456,7 +456,7 @@ void DxDescriptorArray::reflushSet() {
           auto* b = reinterpret_cast<DxBuffer*>(arr[i]);
           if(b==nullptr)
             continue;
-          placeInHeap(device, prm.rgnType, descPtr, heapOffset + i*descSize, b, offset, l.byteSize);
+          placeInHeap(device, prm.rgnType, descPtr, heapOffset + i*1, b, offset, l.byteSize);
           }
         break;
         }
@@ -474,9 +474,9 @@ void DxDescriptorArray::reflushSet() {
           auto* t = reinterpret_cast<DxTexture*>(arr[i]);
           if(t==nullptr)
             continue;
-          placeInHeap(device, prm.rgnType, descPtr, heapOffset + i*descSize, *t, smp.mapping, mipLevel);
+          placeInHeap(device, prm.rgnType, descPtr, heapOffset + i*1, *t, smp.mapping, mipLevel);
           if(l.hasSampler())
-            placeInHeap(device, prm.rgnType, smpPtr, heapOffsetSmp + i*smpSize, smp);
+            placeInHeap(device, prm.rgnType, smpPtr, heapOffsetSmp + i*1, smp);
           }
         break;
         }
@@ -487,13 +487,13 @@ void DxDescriptorArray::reflushSet() {
     }
   }
 
-void DxDescriptorArray::placeInHeap(ID3D12Device& device, D3D12_DESCRIPTOR_RANGE_TYPE rgn,
-                                    const D3D12_CPU_DESCRIPTOR_HANDLE& at, UINT64 heapOffset,
+void DxDescriptorArray::placeInHeap(ID3D11Device& device, D3D11_SHADER_INPUT_TYPE rgn,
+                                    const void*& at, UINT64 heapOffset,
                                     DxTexture& t, const ComponentMapping& mapping, uint32_t mipLevel) {
-  if(rgn==D3D12_DESCRIPTOR_RANGE_TYPE_UAV) {
+  if(rgn==D3D11_SHADER_INPUT_TYPE_UAV) {
     if(mipLevel==uint32_t(-1))
       mipLevel = 0;
-    D3D12_UNORDERED_ACCESS_VIEW_DESC desc = {};
+    D3D11_UNORDERED_ACCESS_VIEW_DESC desc = {};
     desc.Format             = t.format;
     if(t.is3D) {
       desc.ViewDimension      = D3D12_UAV_DIMENSION_TEXTURE3D;
@@ -508,7 +508,7 @@ void DxDescriptorArray::placeInHeap(ID3D12Device& device, D3D12_DESCRIPTOR_RANGE
     gpu.ptr += heapOffset;
     device.CreateUnorderedAccessView(t.impl.get(),nullptr,&desc,gpu);
     } else {
-    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
     srvDesc.Shader4ComponentMapping = compMapping(mapping);
     srvDesc.Format                  = nativeSrvFormat(t.format);
     if(t.sliceCnt>1) {
@@ -534,17 +534,17 @@ void DxDescriptorArray::placeInHeap(ID3D12Device& device, D3D12_DESCRIPTOR_RANGE
     }
   }
 
-void DxDescriptorArray::placeInHeap(ID3D12Device& device, D3D12_DESCRIPTOR_RANGE_TYPE rgn,
-                                    const D3D12_CPU_DESCRIPTOR_HANDLE& at, UINT64 heapOffset, const Sampler& smp) {
-  UINT filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
-  D3D12_SAMPLER_DESC smpDesc = {};
-  smpDesc.Filter           = D3D12_FILTER_MIN_MAG_MIP_POINT;
+void DxDescriptorArray::placeInHeap(ID3D11Device& device, D3D11_SHADER_INPUT_TYPE rgn,
+                                    const void*& at, UINT64 heapOffset, const Sampler& smp) {
+  UINT filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+  D3D11_SAMPLER_DESC smpDesc = {};
+  smpDesc.Filter           = D3D11_FILTER_MIN_MAG_MIP_POINT;
   smpDesc.AddressU         = nativeFormat(smp.uClamp);
   smpDesc.AddressV         = nativeFormat(smp.vClamp);
   smpDesc.AddressW         = nativeFormat(smp.wClamp);
   smpDesc.MipLODBias       = 0;
   smpDesc.MaxAnisotropy    = 1;
-  smpDesc.ComparisonFunc   = D3D12_COMPARISON_FUNC_NEVER;
+  smpDesc.ComparisonFunc   = D3D11_COMPARISON_FUNC_NEVER;
   smpDesc.BorderColor[0]   = 1;
   smpDesc.BorderColor[1]   = 1;
   smpDesc.BorderColor[2]   = 1;
@@ -553,33 +553,33 @@ void DxDescriptorArray::placeInHeap(ID3D12Device& device, D3D12_DESCRIPTOR_RANGE
   smpDesc.MaxLOD           = D3D12_FLOAT32_MAX;
 
   if(smp.minFilter==Filter::Linear)
-    filter |= (1u<<D3D12_MIN_FILTER_SHIFT);
+    filter |= (1u<<0);
   if(smp.magFilter==Filter::Linear)
-    filter |= (1u<<D3D12_MAG_FILTER_SHIFT);
+    filter |= (1u<<2);
   if(smp.mipFilter==Filter::Linear)
-    filter |= (1u<<D3D12_MIP_FILTER_SHIFT);
+    filter |= (1u<<4);
 
   if(smp.anisotropic) {
     smpDesc.MaxAnisotropy = 16;
-    filter |= D3D12_ANISOTROPIC_FILTERING_BIT;
+    filter |= 0x40;
     }
-  smpDesc.Filter = D3D12_FILTER(filter);
+  smpDesc.Filter = D3D11_FILTER(filter);
 
   auto gpu = at;
   gpu.ptr += heapOffset;
   device.CreateSampler(&smpDesc,gpu);
   }
 
-void DxDescriptorArray::placeInHeap(ID3D12Device& device, D3D12_DESCRIPTOR_RANGE_TYPE rgn,
-                                    const D3D12_CPU_DESCRIPTOR_HANDLE& at, UINT64 heapOffset, DxBuffer* buf,
+void DxDescriptorArray::placeInHeap(ID3D11Device& device, D3D11_SHADER_INPUT_TYPE rgn,
+                                    const void*& at, UINT64 heapOffset, DxBuffer* buf,
                                     uint64_t bufOffset, uint64_t byteSize) {
-  if(rgn==D3D12_DESCRIPTOR_RANGE_TYPE_UAV) {
-    D3D12_UNORDERED_ACCESS_VIEW_DESC desc = {};
+  if(rgn==D3D11_SHADER_INPUT_TYPE_UAV) {
+    D3D11_UNORDERED_ACCESS_VIEW_DESC desc = {};
     desc.Format              = DXGI_FORMAT_R32_TYPELESS;
     desc.ViewDimension       = D3D12_UAV_DIMENSION_BUFFER;
     desc.Buffer.FirstElement = UINT(bufOffset/4);
     desc.Buffer.NumElements  = UINT((byteSize+3)/4); // UAV size is required to be 4-byte aligned.
-    desc.Buffer.Flags        = D3D12_BUFFER_UAV_FLAG_RAW;
+    desc.Buffer.Flags        = 0;
     if(desc.Buffer.NumElements==0 && buf!=nullptr)
       desc.Buffer.NumElements = UINT(buf->appSize-bufOffset+3)/4;
 
@@ -589,14 +589,14 @@ void DxDescriptorArray::placeInHeap(ID3D12Device& device, D3D12_DESCRIPTOR_RANGE
       device.CreateUnorderedAccessView(buf->impl.get(),nullptr,&desc,gpu); else
       device.CreateUnorderedAccessView(nullptr,nullptr,&desc,gpu);
     }
-  else if(rgn==D3D12_DESCRIPTOR_RANGE_TYPE_SRV) {
-    D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
+  else if(rgn==D3D11_SHADER_INPUT_TYPE_SRV) {
+    D3D11_SHADER_RESOURCE_VIEW_DESC desc = {};
     desc.Format                  = DXGI_FORMAT_R32_TYPELESS;
     desc.ViewDimension           = D3D12_SRV_DIMENSION_BUFFER;
     desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     desc.Buffer.FirstElement     = UINT(bufOffset/4);
     desc.Buffer.NumElements      = UINT((byteSize+3)/4); // SRV size is required to be 4-byte aligned.
-    desc.Buffer.Flags            = D3D12_BUFFER_SRV_FLAG_RAW;
+    desc.Buffer.Flags            = 0;
     if(desc.Buffer.NumElements==0 && buf!=nullptr)
       desc.Buffer.NumElements = UINT(buf->appSize-bufOffset+3)/4;
 
@@ -620,9 +620,9 @@ void DxDescriptorArray::placeInHeap(ID3D12Device& device, D3D12_DESCRIPTOR_RANGE
     }
   }
 
-void DxDescriptorArray::placeInHeap(ID3D12Device& device, D3D12_DESCRIPTOR_RANGE_TYPE rgn, const D3D12_CPU_DESCRIPTOR_HANDLE& at,
+void DxDescriptorArray::placeInHeap(ID3D11Device& device, D3D11_SHADER_INPUT_TYPE rgn, const void*& at,
                                     UINT64 heapOffset, DxAccelerationStructure& as) {
-  D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
+  D3D11_SHADER_RESOURCE_VIEW_DESC desc = {};
   desc.Format                  = DXGI_FORMAT_UNKNOWN;
   desc.ViewDimension           = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
   desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -633,4 +633,4 @@ void DxDescriptorArray::placeInHeap(ID3D12Device& device, D3D12_DESCRIPTOR_RANGE
   device.CreateShaderResourceView(nullptr,&desc,gpu);
   }
 
-#endif
+

@@ -1,3 +1,4 @@
+#if defined(TEMPEST_BUILD_DIRECTX11)
 #pragma once
 
 #include <Tempest/AbstractGraphicsApi>
@@ -41,19 +42,21 @@ class DxAllocator {
   private:
     struct MemRequirements{};
     Allocation allocMemory(const MemRequirements& rq, const uint32_t heapId, const uint32_t typeId, bool hostVisible);
-    bool       commit(ID3D12Heap* dev, std::mutex& mmapSync, ID3D12Resource*& dest,
-                      const D3D12_RESOURCE_DESC& resDesc, D3D12_RESOURCE_STATES state, size_t offset,
+    bool       commit(ID3D12Heap* dev, std::mutex& mmapSync, ID3D11Resource*& dest,
+                      const D3D11_BUFFER_DESC& resDesc, UINT state, size_t offset,
                       const void *mem, size_t size);
 
     DxDevice*       owner  = nullptr;
-    ID3D12Device*   device = nullptr;
+    ID3D11Device*   device = nullptr;
 
     Provider                          provider;
     Detail::DeviceAllocator<Provider> allocator{provider};
 
-    D3D12_HEAP_PROPERTIES             buferHeap[3]={};
+    D3D11_BUFFER_DESC             buferHeap[3]={};
   };
 
 }
 }
 
+
+#endif

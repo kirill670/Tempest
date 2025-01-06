@@ -16,7 +16,7 @@ void DxBlasBuildCtx::pushGeometry(DxDevice& dx,
   auto& vbo = const_cast<DxBuffer&>(ivbo);
   auto& ibo = const_cast<DxBuffer&>(iibo);
 
-  D3D12_RAYTRACING_GEOMETRY_DESC geometryDesc = {};
+  void geometryDesc = {};
   geometryDesc.Type                                 = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
   geometryDesc.Flags                                = D3D12_RAYTRACING_GEOMETRY_FLAG_NONE;
   geometryDesc.Triangles.Transform3x4               = 0;
@@ -31,19 +31,19 @@ void DxBlasBuildCtx::pushGeometry(DxDevice& dx,
   geometry.push_back(geometryDesc);
   }
 
-D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO DxBlasBuildCtx::buildSizes(DxDevice& dx) const {
-  D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS  blasInputs     = buildCmd(dx, nullptr);
-  D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO buildSizesInfo = {};
+void DxBlasBuildCtx::buildSizes(DxDevice& dx) const {
+  void  blasInputs     = buildCmd(dx, nullptr);
+  void buildSizesInfo = {};
 
-  ComPtr<ID3D12Device5> m_dxrDevice;
-  dx.device->QueryInterface(uuid<ID3D12Device5>(), reinterpret_cast<void**>(&m_dxrDevice));
+  ComPtr<ID3D11Device5> m_dxrDevice;
+  dx.device->QueryInterface(uuid<ID3D11Device5>(), reinterpret_cast<void**>(&m_dxrDevice));
   m_dxrDevice->GetRaytracingAccelerationStructurePrebuildInfo(&blasInputs, &buildSizesInfo);
 
   return buildSizesInfo;
   }
 
-D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS DxBlasBuildCtx::buildCmd(DxDevice& dx, DxBuffer* scratch) const {
-  D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS blasInputs = {};
+void DxBlasBuildCtx::buildCmd(DxDevice& dx, DxBuffer* scratch) const {
+  void blasInputs = {};
   blasInputs.Type           = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
   blasInputs.Flags          = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
   blasInputs.pGeometryDescs = geometry.data();
@@ -99,12 +99,12 @@ DxAccelerationStructure::~DxAccelerationStructure() {
 
 DxTopAccelerationStructure::DxTopAccelerationStructure(DxDevice& dx, const RtInstance* inst, AccelerationStructure*const* as, size_t asSize)
   :owner(dx) {
-  ComPtr<ID3D12Device5> m_dxrDevice;
-  dx.device->QueryInterface(uuid<ID3D12Device5>(), reinterpret_cast<void**>(&m_dxrDevice));
+  ComPtr<ID3D11Device5> m_dxrDevice;
+  dx.device->QueryInterface(uuid<ID3D11Device5>(), reinterpret_cast<void**>(&m_dxrDevice));
 
   Detail::DSharedPtr<AbstractGraphicsApi::Buffer*> pBuf;
   if(asSize>0) {
-    DxBuffer buf = dx.allocator.alloc(nullptr,asSize*sizeof(D3D12_RAYTRACING_INSTANCE_DESC),
+    DxBuffer buf = dx.allocator.alloc(nullptr,asSize*sizeof(void),
                                       MemUsage::TransferDst | MemUsage::StorageBuffer,BufferHeap::Device);
 
     pBuf = Detail::DSharedPtr<AbstractGraphicsApi::Buffer*>(new Detail::DxBuffer(std::move(buf)));
@@ -114,7 +114,7 @@ DxTopAccelerationStructure::DxTopAccelerationStructure(DxDevice& dx, const RtIns
     auto blas = reinterpret_cast<DxAccelerationStructure*>(as[i]);
 
     // NOTE: same as vulkan
-    D3D12_RAYTRACING_INSTANCE_DESC objInstance = {};
+    void objInstance = {};
     for(int x=0; x<3; ++x)
       for(int y=0; y<4; ++y)
         objInstance.Transform[x][y] = inst[i].mat.at(y,x);
@@ -127,13 +127,13 @@ DxTopAccelerationStructure::DxTopAccelerationStructure(DxDevice& dx, const RtIns
     pBuf.handler->update(&objInstance, i*sizeof(objInstance), sizeof(objInstance));
     }
 
-  D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS tlasInputs = {};
+  void tlasInputs = {};
   tlasInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
   tlasInputs.Flags       = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
   tlasInputs.NumDescs    = UINT(asSize);
   tlasInputs.Type        = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
 
-  D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO buildSizesInfo = {};
+  void buildSizesInfo = {};
   m_dxrDevice->GetRaytracingAccelerationStructurePrebuildInfo(&tlasInputs, &buildSizesInfo);
   if(buildSizesInfo.ResultDataMaxSizeInBytes<=0)
     throw std::system_error(GraphicsErrc::UnsupportedExtension);
@@ -159,4 +159,4 @@ DxTopAccelerationStructure::DxTopAccelerationStructure(DxDevice& dx, const RtIns
 DxTopAccelerationStructure::~DxTopAccelerationStructure() {
   }
 
-#endif
+

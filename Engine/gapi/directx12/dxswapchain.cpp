@@ -23,13 +23,13 @@ DxSwapchain::DxSwapchain(DxDevice& dev, IDXGIFactory4& dxgi, SystemApi::Window* 
   sd.Stereo = false;
 
   sd.SampleDesc.Count = 1;
-  sd.BufferUsage  = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+  sd.BufferUsage  = 0;
   sd.BufferCount  = imgCount;
   sd.Scaling      = DXGI_SCALING_STRETCH;
-  sd.SwapEffect   = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+  sd.SwapEffect   = 0;
   sd.AlphaMode    = DXGI_ALPHA_MODE_UNSPECIFIED;
   /*
-  sd.Flags        = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+  sd.Flags        = 0;
   */
 
   dxAssert(dxgi.CreateSwapChainForHwnd(
@@ -46,14 +46,14 @@ DxSwapchain::DxSwapchain(DxDevice& dev, IDXGIFactory4& dxgi, SystemApi::Window* 
 
   // descriptor heap
   D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
-  rtvHeapDesc.Type           = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+  rtvHeapDesc.Type           = UINT_RTV;
   rtvHeapDesc.NumDescriptors = imgCount;
-  rtvHeapDesc.Flags          = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-  dxAssert(device.CreateDescriptorHeap(&rtvHeapDesc, uuid<ID3D12DescriptorHeap>(), reinterpret_cast<void**>(&rtvHeap)));
+  rtvHeapDesc.Flags          = 0;
+  dxAssert(device.CreateDescriptorHeap(&rtvHeapDesc, uuid<void>(), reinterpret_cast<void**>(&rtvHeap)));
 
   // frame resources.
-  views  .reset(new ComPtr<ID3D12Resource>[imgCount]);
-  handles.reset(new D3D12_CPU_DESCRIPTOR_HANDLE[imgCount]);
+  views  .reset(new ComPtr<ID3D11Resource>[imgCount]);
+  handles.reset(new void*[imgCount]);
 
   initImages();
   }
@@ -92,15 +92,15 @@ void DxSwapchain::queuePresent() {
 
 void DxSwapchain::initImages() {
   auto& device  = *dev.device;
-  auto  eltSize = device.GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+  auto  eltSize = device.GetDescriptorHandleIncrementSize(UINT_RTV);
 
-  D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = rtvHeap->GetCPUDescriptorHandleForHeapStart();
+  void* rtvHandle = rtvHeap->GetCPUDescriptorHandleForHeapStart();
   for(uint32_t i=0; i<imgCount; i++) {
-    dxAssert(swapChain->GetBuffer(i, uuid<ID3D12Resource>(), reinterpret_cast<void**>(&views[i])));
+    dxAssert(swapChain->GetBuffer(i, uuid<ID3D11Resource>(), reinterpret_cast<void**>(&views[i])));
     device.CreateRenderTargetView(views[i].get(), nullptr, rtvHandle);
     handles[i] = rtvHandle;
     rtvHandle.ptr += eltSize;
     }
   }
 
-#endif
+

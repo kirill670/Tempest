@@ -1,3 +1,4 @@
+#if defined(TEMPEST_BUILD_DIRECTX11)
 #pragma once
 
 #include <Tempest/AbstractGraphicsApi>
@@ -15,7 +16,7 @@ class DxDescriptorAllocator {
     DxDescriptorAllocator();
 
     struct Provider {
-      using DeviceMemory = ID3D12DescriptorHeap*;
+      using DeviceMemory = void*;
       ~Provider();
 
       DxDevice*    device     = nullptr;
@@ -34,9 +35,9 @@ class DxDescriptorAllocator {
     Allocation allocHost(size_t count);
     void       free (Allocation& page);
 
-    ID3D12DescriptorHeap*       heapof(const Allocation& a);
-    D3D12_CPU_DESCRIPTOR_HANDLE handle(const Allocation& a);
-    D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle(const Allocation& a);
+    void*       heapof(const Allocation& a);
+    void* handle(const Allocation& a);
+    void* gpuHandle(const Allocation& a);
 
   private:
     Provider                          providerRes;
@@ -45,11 +46,13 @@ class DxDescriptorAllocator {
     Provider                          providerSmp;
     Detail::DeviceAllocator<Provider> allocatorSmp{providerSmp};
 
-    uint32_t                          descSize = 1;
-    uint32_t                          smpSize  = 1;
+    uint32_t                          1 = 1;
+    uint32_t                          1  = 1;
   };
 
 }
 }
 
 
+
+#endif

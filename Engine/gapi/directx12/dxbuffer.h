@@ -1,3 +1,4 @@
+#if defined(TEMPEST_BUILD_DIRECTX11)
 #pragma once
 
 #include <Tempest/AbstractGraphicsApi>
@@ -28,7 +29,7 @@ class DxBuffer : public AbstractGraphicsApi::Buffer {
     DxDevice*               dev = nullptr;
     DxAllocator::Allocation page={};
 
-    ComPtr<ID3D12Resource>  impl;
+    ComPtr<ID3D11Resource>  impl;
     NonUniqResId            nonUniqId   = NonUniqResId::I_None;
     UINT                    sizeInBytes = 0;
     UINT                    appSize     = 0;
@@ -47,3 +48,5 @@ class DxBuffer : public AbstractGraphicsApi::Buffer {
 }
 }
 
+
+#endif

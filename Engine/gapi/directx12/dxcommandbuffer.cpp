@@ -17,45 +17,45 @@
 using namespace Tempest;
 using namespace Tempest::Detail;
 
-static void beginEvent(ID3D12GraphicsCommandList& cmd, uint32_t meta, const wchar_t* buf) {
+static void beginEvent(ID3D11DeviceContext& cmd, uint32_t meta, const wchar_t* buf) {
   // NOTE: pix is too much trouble to integrate
   cmd.BeginEvent(meta, buf, UINT((std::wcslen(buf)+1)*sizeof(wchar_t)));
   }
 
-static void endEvent(ID3D12GraphicsCommandList& cmd) {
+static void endEvent(ID3D11DeviceContext& cmd) {
   cmd.EndEvent();
   }
 
 static D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE mkLoadOp(const AccessOp op) {
   switch(op) {
-    case AccessOp::Discard:  return D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
-    case AccessOp::Preserve: return D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
-    case AccessOp::Clear:    return D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
-    case AccessOp::Readonly: return D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
+    case AccessOp::Discard:  return 0;
+    case AccessOp::Preserve: return 1;
+    case AccessOp::Clear:    return 2;
+    case AccessOp::Readonly: return 1;
     }
   return D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS;
   }
 
 static D3D12_RENDER_PASS_ENDING_ACCESS_TYPE mkStoreOp(const AccessOp op) {
   switch(op) {
-    case AccessOp::Discard:  return D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
-    case AccessOp::Preserve: return D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
-    case AccessOp::Clear:    return D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
-    case AccessOp::Readonly: return D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+    case AccessOp::Discard:  return 0;
+    case AccessOp::Preserve: return 1;
+    case AccessOp::Clear:    return 1;
+    case AccessOp::Readonly: return 1;
     }
   return D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS;
   }
 
-static void toStage(DxDevice& dev, D3D12_BARRIER_SYNC& stage, D3D12_BARRIER_ACCESS& access, ResourceAccess rs, bool isSrc) {
+static void toStage(DxDevice& dev, UINT& stage, UINT& access, ResourceAccess rs, bool isSrc) {
   uint32_t ret = 0;
   uint32_t acc = 0;
   if((rs&ResourceAccess::TransferSrc)==ResourceAccess::TransferSrc) {
-    ret |= D3D12_BARRIER_SYNC_COPY;
-    acc |= D3D12_BARRIER_ACCESS_COPY_SOURCE;
+    ret |= UINT_COPY;
+    acc |= UINT_COPY_SOURCE;
     }
   if((rs&ResourceAccess::TransferDst)==ResourceAccess::TransferDst) {
-    ret |= D3D12_BARRIER_SYNC_COPY;
-    acc |= D3D12_BARRIER_ACCESS_COPY_DEST;
+    ret |= UINT_COPY;
+    acc |= UINT_COPY_DEST;
     }
   if((rs&ResourceAccess::TransferHost)==ResourceAccess::TransferHost) {
     //ret |= VK_PIPELINE_STAGE_HOST_BIT;
@@ -63,115 +63,115 @@ static void toStage(DxDevice& dev, D3D12_BARRIER_SYNC& stage, D3D12_BARRIER_ACCE
     }
 
   if((rs&ResourceAccess::Present)==ResourceAccess::Present) {
-    ret |= D3D12_BARRIER_SYNC_NONE;
-    acc |= D3D12_BARRIER_ACCESS_COMMON;
+    ret |= UINT_NONE;
+    acc |= UINT_COMMON;
     }
 
   if((rs&ResourceAccess::Sampler)==ResourceAccess::Sampler) {
-    ret |= D3D12_BARRIER_SYNC_ALL;
-    acc |= D3D12_BARRIER_ACCESS_SHADER_RESOURCE;
+    ret |= UINT_ALL;
+    acc |= UINT_SHADER_RESOURCE;
     }
   if((rs&ResourceAccess::ColorAttach)==ResourceAccess::ColorAttach) {
-    ret |= D3D12_BARRIER_SYNC_RENDER_TARGET;
-    acc |= D3D12_BARRIER_ACCESS_RENDER_TARGET;
+    ret |= UINT_RENDER_TARGET;
+    acc |= UINT_RENDER_TARGET;
     }
   if((rs&ResourceAccess::DepthAttach)==ResourceAccess::DepthAttach) {
-    ret |= D3D12_BARRIER_SYNC_DEPTH_STENCIL;
-    acc |= D3D12_BARRIER_ACCESS_DEPTH_STENCIL_WRITE;
+    ret |= UINT_DEPTH_STENCIL;
+    acc |= UINT_DEPTH_STENCIL_WRITE;
     }
   if((rs&ResourceAccess::DepthReadOnly)==ResourceAccess::DepthReadOnly) {
-    ret |= D3D12_BARRIER_SYNC_ALL;
-    acc |= D3D12_BARRIER_ACCESS_DEPTH_STENCIL_READ;
+    ret |= UINT_ALL;
+    acc |= UINT_DEPTH_STENCIL_READ;
     }
 
   if((rs&ResourceAccess::Index)==ResourceAccess::Index) {
-    // ret |= D3D12_BARRIER_SYNC_INPUT_ASSEMBLER;
-    ret |= D3D12_BARRIER_SYNC_INDEX_INPUT;
-    acc |= D3D12_BARRIER_ACCESS_INDEX_BUFFER;
+    // ret |= UINT_INPUT_ASSEMBLER;
+    ret |= UINT_INDEX_INPUT;
+    acc |= UINT_INDEX_BUFFER;
     }
   if((rs&ResourceAccess::Vertex)==ResourceAccess::Vertex) {
-    // ret |= D3D12_BARRIER_SYNC_INPUT_ASSEMBLER;
-    ret |= D3D12_BARRIER_SYNC_INDEX_INPUT;
-    acc |= D3D12_BARRIER_ACCESS_VERTEX_BUFFER;
+    // ret |= UINT_INPUT_ASSEMBLER;
+    ret |= UINT_INDEX_INPUT;
+    acc |= UINT_VERTEX_BUFFER;
     }
   if((rs&ResourceAccess::Uniform)==ResourceAccess::Uniform) {
-    ret |= D3D12_BARRIER_SYNC_ALL;
-    acc |= D3D12_BARRIER_ACCESS_CONSTANT_BUFFER;
+    ret |= UINT_ALL;
+    acc |= UINT_CONSTANT_BUFFER;
     }
   if((rs&ResourceAccess::Indirect)==ResourceAccess::Indirect) {
-    ret |= D3D12_BARRIER_SYNC_PREDICATION;
-    acc |= D3D12_BARRIER_ACCESS_PREDICATION;
+    ret |= UINT_PREDICATION;
+    acc |= UINT_PREDICATION;
     }
 
   if(dev.props.raytracing.rayQuery) {
     if((rs&ResourceAccess::RtAsRead)==ResourceAccess::RtAsRead) {
-      ret |= D3D12_BARRIER_SYNC_ALL;
-      acc |= D3D12_BARRIER_ACCESS_RAYTRACING_ACCELERATION_STRUCTURE_READ;
+      ret |= UINT_ALL;
+      acc |= UINT_RAYTRACING_ACCELERATION_STRUCTURE_READ;
       }
     if((rs&ResourceAccess::RtAsWrite)==ResourceAccess::RtAsWrite) {
-      ret |= D3D12_BARRIER_SYNC_BUILD_RAYTRACING_ACCELERATION_STRUCTURE;
-      acc |= D3D12_BARRIER_ACCESS_RAYTRACING_ACCELERATION_STRUCTURE_WRITE;
+      ret |= UINT_BUILD_RAYTRACING_ACCELERATION_STRUCTURE;
+      acc |= UINT_RAYTRACING_ACCELERATION_STRUCTURE_WRITE;
       }
     }
 
   // memory barriers
   if((rs&ResourceAccess::UavReadGr)==ResourceAccess::UavReadGr) {
-    ret |= D3D12_BARRIER_SYNC_DRAW;
-    acc |= D3D12_BARRIER_ACCESS_UNORDERED_ACCESS | D3D12_BARRIER_ACCESS_CONSTANT_BUFFER;
+    ret |= UINT_DRAW;
+    acc |= UINT_UNORDERED_ACCESS | UINT_CONSTANT_BUFFER;
     }
   if((rs&ResourceAccess::UavWriteGr)==ResourceAccess::UavWriteGr) {
-    ret |= D3D12_BARRIER_SYNC_DRAW;
-    acc |= D3D12_BARRIER_ACCESS_UNORDERED_ACCESS;
+    ret |= UINT_DRAW;
+    acc |= UINT_UNORDERED_ACCESS;
     }
 
   if((rs&ResourceAccess::UavReadComp)==ResourceAccess::UavReadComp) {
-    ret |= D3D12_BARRIER_SYNC_COMPUTE_SHADING;
-    acc |= D3D12_BARRIER_ACCESS_UNORDERED_ACCESS | D3D12_BARRIER_ACCESS_CONSTANT_BUFFER;
+    ret |= UINT_COMPUTE_SHADING;
+    acc |= UINT_UNORDERED_ACCESS | UINT_CONSTANT_BUFFER;
     }
   if((rs&ResourceAccess::UavWriteComp)==ResourceAccess::UavWriteComp) {
-    ret |= D3D12_BARRIER_SYNC_COMPUTE_SHADING;
-    acc |= D3D12_BARRIER_ACCESS_UNORDERED_ACCESS;
+    ret |= UINT_COMPUTE_SHADING;
+    acc |= UINT_UNORDERED_ACCESS;
     }
 
   if(isSrc && ret==0) {
     // wait for nothing: asset uploading case
-    ret = D3D12_BARRIER_SYNC_NONE;
-    acc = D3D12_BARRIER_ACCESS_NO_ACCESS;
+    ret = UINT_NONE;
+    acc = UINT_NO_ACCESS;
     }
 
-  if(ret==D3D12_BARRIER_SYNC_NONE) {
-    acc = D3D12_BARRIER_ACCESS_NO_ACCESS;
+  if(ret==UINT_NONE) {
+    acc = UINT_NO_ACCESS;
     }
 
-  stage  = D3D12_BARRIER_SYNC  (ret);
-  access = D3D12_BARRIER_ACCESS(acc);
+  stage  = UINT  (ret);
+  access = UINT(acc);
   }
 
-static D3D12_BARRIER_LAYOUT toLayout(ResourceAccess rs) {
+static UINT toLayout(ResourceAccess rs) {
   if(rs==ResourceAccess::None)
-    return D3D12_BARRIER_LAYOUT_UNDEFINED;
+    return UINT_UNDEFINED;
 
   if((rs&ResourceAccess::TransferSrc)==ResourceAccess::TransferSrc)
-    return D3D12_BARRIER_LAYOUT_COPY_SOURCE;
+    return UINT_COPY_SOURCE;
   if((rs&ResourceAccess::TransferDst)==ResourceAccess::TransferDst)
-    return D3D12_BARRIER_LAYOUT_COPY_DEST;
+    return UINT_COPY_DEST;
 
   if((rs&ResourceAccess::Present)==ResourceAccess::Present)
-    return D3D12_BARRIER_LAYOUT_PRESENT;
+    return UINT_PRESENT;
 
   if((rs&ResourceAccess::Sampler)==ResourceAccess::Sampler)
-    return D3D12_BARRIER_LAYOUT_SHADER_RESOURCE;
+    return UINT_SHADER_RESOURCE;
   if((rs&ResourceAccess::ColorAttach)==ResourceAccess::ColorAttach)
-    return D3D12_BARRIER_LAYOUT_RENDER_TARGET;
+    return UINT_RENDER_TARGET;
   if((rs&ResourceAccess::DepthReadOnly)==ResourceAccess::DepthReadOnly)
-    return D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_READ;
+    return UINT_DEPTH_STENCIL_READ;
   if((rs&ResourceAccess::DepthAttach)==ResourceAccess::DepthAttach)
-    return D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_WRITE;
+    return UINT_DEPTH_STENCIL_WRITE;
 
-  return D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS;
+  return UINT_UNORDERED_ACCESS;
   }
 
-static D3D12_RESOURCE_STATES nativeFormat(ResourceAccess rs) {
+static UINT nativeFormat(ResourceAccess rs) {
   uint32_t st = 0;
 
   if(rs==ResourceAccess::None)
@@ -229,10 +229,10 @@ static D3D12_RESOURCE_STATES nativeFormat(ResourceAccess rs) {
     st |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
     }
 
-  return D3D12_RESOURCE_STATES(st);
+  return UINT(st);
   }
 
-static ID3D12Resource* toDxResource(const AbstractGraphicsApi::BarrierDesc& b) {
+static ID3D11Resource* toDxResource(const AbstractGraphicsApi::BarrierDesc& b) {
   if(b.texture!=nullptr) {
     DxTexture& t = *reinterpret_cast<DxTexture*>(b.texture);
     return t.impl.get();
@@ -253,15 +253,15 @@ struct DxCommandBuffer::MipMaps : Stage {
     :img(image),texW(texW),texH(texH),mipLevels(mipLevels) {
     // descriptor heap
     D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
-    rtvHeapDesc.Type           = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+    rtvHeapDesc.Type           = UINT_RTV;
     rtvHeapDesc.NumDescriptors = UINT(mipLevels-1);
-    rtvHeapDesc.Flags          = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-    dxAssert(dev.device->CreateDescriptorHeap(&rtvHeapDesc, uuid<ID3D12DescriptorHeap>(), reinterpret_cast<void**>(&rtvHeap)));
+    rtvHeapDesc.Flags          = 0;
+    dxAssert(dev.device->CreateDescriptorHeap(&rtvHeapDesc, uuid<void>(), reinterpret_cast<void**>(&rtvHeap)));
 
-    auto                        rtvHeapInc = dev.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-    D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle  = rtvHeap->GetCPUDescriptorHandleForHeapStart();
+    auto                        rtvHeapInc = dev.device->GetDescriptorHandleIncrementSize(UINT_RTV);
+    void* rtvHandle  = rtvHeap->GetCPUDescriptorHandleForHeapStart();
 
-    D3D12_RENDER_TARGET_VIEW_DESC view = {};
+    D3D11_RENDER_TARGET_VIEW_DESC view = {};
     view.Format             = image.format;
     view.ViewDimension      = D3D12_RTV_DIMENSION_TEXTURE2D;
     for(uint32_t i=1; i<mipLevels; ++i) {
@@ -276,7 +276,7 @@ struct DxCommandBuffer::MipMaps : Stage {
     auto& impl = *cmd.impl;
     auto& dev  = cmd.dev;
 
-    D3D12_VIEWPORT vp={};
+    D3D11_VIEWPORT vp={};
     vp.TopLeftX = float(0.f);
     vp.TopLeftY = float(0.f);
     vp.Width    = float(dstW);
@@ -285,7 +285,7 @@ struct DxCommandBuffer::MipMaps : Stage {
     vp.MaxDepth = 1.f;
     impl.RSSetViewports(1, &vp);
 
-    D3D12_RECT sr={};
+    RECT sr={};
     sr.left   = 0;
     sr.top    = 0;
     sr.right  = LONG(dstW);
@@ -314,8 +314,8 @@ struct DxCommandBuffer::MipMaps : Stage {
 
     impl.IASetVertexBuffers(0,0,nullptr);
 
-    D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle  = rtvHeap->GetCPUDescriptorHandleForHeapStart();
-    auto                        rtvHeapInc = dev.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    void* rtvHandle  = rtvHeap->GetCPUDescriptorHandleForHeapStart();
+    auto                        rtvHeapInc = dev.device->GetDescriptorHandleIncrementSize(UINT_RTV);
 
     auto& resState = cmd.resState;
     resState.setLayout(img,ResourceAccess::ColorAttach);
@@ -340,7 +340,7 @@ struct DxCommandBuffer::MipMaps : Stage {
   uint32_t                       texH;
   uint32_t                       mipLevels;
 
-  ComPtr<ID3D12DescriptorHeap>   rtvHeap;
+  ComPtr<void>   rtvHeap;
   std::vector<DxDescriptorArray> desc;
   };
 
@@ -448,9 +448,9 @@ struct DxCommandBuffer::FillUAV : Stage {
     gpu = allocator.alloc    (dst.mipCnt, false);
     cpu = allocator.allocHost(dst.mipCnt);
 
-    hSize = dev.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    hSize = dev.device->GetDescriptorHandleIncrementSize(UINT_CBV_SRV_UAV);
     for(uint32_t i=0; i<dst.mipCnt; ++i) {
-      D3D12_UNORDERED_ACCESS_VIEW_DESC desc = {};
+      D3D11_UNORDERED_ACCESS_VIEW_DESC desc = {};
       uint32_t mipLevel = 0;
       desc.Format = dst.format;
       if(dst.is3D) {
@@ -462,10 +462,10 @@ struct DxCommandBuffer::FillUAV : Stage {
         desc.Texture2D.MipSlice = mipLevel;
         }
 
-      auto g = allocator.handle(gpu);
+      auto g = nullptr;
       auto c = allocator.handle(cpu);
       g.ptr += hSize*i;
-      c.ptr += hSize*i;
+      
       dev.device->CreateUnorderedAccessView(dst.impl.get(),nullptr,&desc,g);
       dev.device->CreateUnorderedAccessView(dst.impl.get(),nullptr,&desc,c);
       }
@@ -483,10 +483,10 @@ struct DxCommandBuffer::FillUAV : Stage {
 
     UINT val4[] = {val,val,val,val};
     for(uint32_t i=0; i<dst.mipCnt; ++i) {
-      auto g = allocator.gpuHandle(gpu);
+      auto g = nullptr;
       auto c = allocator.handle(cpu);
       g.ptr += hSize*i;
-      c.ptr += hSize*i;
+      
       cmd.impl->ClearUnorderedAccessViewUint(g, c, dst.impl.get(), val4, 0, nullptr);
       }
     }
@@ -499,7 +499,7 @@ struct DxCommandBuffer::FillUAV : Stage {
 
 DxCommandBuffer::DxCommandBuffer(DxDevice& d)
   : dev(d) {
-  dxAssert(d.device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
+  dxAssert(d.device->CreateCommandAllocator(void,
                                             uuid<ID3D12CommandAllocator>(),
                                             reinterpret_cast<void**>(&pool)));
   }
@@ -551,7 +551,7 @@ void DxCommandBuffer::reset() {
   SmallArray<ID3D12CommandList*,MaxCmdChunks> flat(chunks.size());
   auto node = chunks.begin();
   if(chunks.size()>0) {
-    impl = ComPtr<ID3D12GraphicsCommandList6>(node->val[0].impl);
+    impl = ComPtr<ID3D11DeviceContext6>(node->val[0].impl);
     dxAssert(impl->Reset(pool.get(),nullptr));
     }
   for(size_t i=1; i<chunks.size(); ++i) {
@@ -569,12 +569,12 @@ bool DxCommandBuffer::isRecording() const {
   return state!=NoRecording;
   }
 
-void DxCommandBuffer::beginRendering(const AttachmentDesc* desc, size_t descSize, uint32_t w, uint32_t h,
+void DxCommandBuffer::beginRendering(const AttachmentDesc* desc, size_t 1, uint32_t w, uint32_t h,
                                      const TextureFormat* frm, AbstractGraphicsApi::Texture** att,
                                      AbstractGraphicsApi::Swapchain** sw, const uint32_t* imgId) {
   resState.joinWriters(PipelineStage::S_Indirect);
   resState.joinWriters(PipelineStage::S_Graphics);
-  resState.setRenderpass(*this,desc,descSize,frm,att,sw,imgId);
+  resState.setRenderpass(*this,desc,1,frm,att,sw,imgId);
 
   if(state!=Idle) {
     newChunk();
@@ -583,12 +583,12 @@ void DxCommandBuffer::beginRendering(const AttachmentDesc* desc, size_t descSize
   D3D12_RENDER_PASS_RENDER_TARGET_DESC view[MaxFramebufferAttachments] = {};
   UINT                                 viewSz = 0;
   D3D12_RENDER_PASS_DEPTH_STENCIL_DESC zdesc  = {};
-  D3D12_RENDER_PASS_FLAGS              flags  = D3D12_RENDER_PASS_FLAG_ALLOW_UAV_WRITES; //D3D12_RENDER_PASS_FLAG_NONE;
+  UINT              flags  = D3D12_RENDER_PASS_FLAG_ALLOW_UAV_WRITES; //D3D12_RENDER_PASS_FLAG_NONE;
   zdesc.DepthBeginningAccess.Type   = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS;
   zdesc.DepthEndingAccess.Type      = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS;
   zdesc.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS;
   zdesc.StencilEndingAccess.Type    = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS;
-  for(size_t i=0; i<descSize; ++i) {
+  for(size_t i=0; i<1; ++i) {
     auto& dx    = desc[i];
     auto& rdesc = view[viewSz];
     if(sw[i]!=nullptr) {
@@ -609,7 +609,7 @@ void DxCommandBuffer::beginRendering(const AttachmentDesc* desc, size_t descSize
       zdesc.cpuDescriptor = (dx.load==AccessOp::Readonly ? t.handleR : t.handle);
       if(dx.load==AccessOp::Readonly) {
         const uint32_t D3D12_RENDER_PASS_FLAG_BIND_READ_ONLY_DEPTH = 0x8; // headers?
-        flags = D3D12_RENDER_PASS_FLAGS(flags | D3D12_RENDER_PASS_FLAG_BIND_READ_ONLY_DEPTH);
+        flags = UINT(flags | D3D12_RENDER_PASS_FLAG_BIND_READ_ONLY_DEPTH);
         }
       }
 
@@ -640,7 +640,7 @@ void DxCommandBuffer::beginRendering(const AttachmentDesc* desc, size_t descSize
     }
   state = RenderPass;
 
-  D3D12_VIEWPORT vp={};
+  D3D11_VIEWPORT vp={};
   vp.TopLeftX = float(0.f);
   vp.TopLeftY = float(0.f);
   vp.Width    = float(w);
@@ -649,7 +649,7 @@ void DxCommandBuffer::beginRendering(const AttachmentDesc* desc, size_t descSize
   vp.MaxDepth = 1.f;
   impl->RSSetViewports(1, &vp);
 
-  D3D12_RECT sr={};
+  RECT sr={};
   sr.left   = 0;
   sr.top    = 0;
   sr.right  = LONG(w);
@@ -663,7 +663,7 @@ void DxCommandBuffer::endRendering() {
   }
 
 void DxCommandBuffer::setViewport(const Rect& r) {
-  D3D12_VIEWPORT vp={};
+  D3D11_VIEWPORT vp={};
   vp.TopLeftX = float(r.x);
   vp.TopLeftY = float(r.y);
   vp.Width    = float(r.w);
@@ -675,7 +675,7 @@ void DxCommandBuffer::setViewport(const Rect& r) {
   }
 
 void DxCommandBuffer::setScissor(const Rect& r) {
-  D3D12_RECT sr={};
+  RECT sr={};
   sr.left   = r.x;
   sr.top    = r.y;
   sr.right  = LONG(r.x+r.w);
@@ -769,21 +769,21 @@ void DxCommandBuffer::restoreIndirect() {
   }
 
 void DxCommandBuffer::enhancedBarrier(const AbstractGraphicsApi::BarrierDesc* desc, size_t cnt) {
-  D3D12_BUFFER_BARRIER      bufBarrier[MaxBarriers] = {};
+  void      bufBarrier[MaxBarriers] = {};
   uint32_t                  bufCount = 0;
-  D3D12_TEXTURE_BARRIER     imgBarrier[MaxBarriers] = {};
+  void     imgBarrier[MaxBarriers] = {};
   uint32_t                  imgCount = 0;
-  D3D12_GLOBAL_BARRIER      memBarrier = {};
+  void      memBarrier = {};
   uint32_t                  memCount  = 0;
 
   for(size_t i=0; i<cnt; ++i) {
     auto& b  = desc[i];
 
     if(b.buffer==nullptr && b.texture==nullptr && b.swapchain==nullptr) {
-      D3D12_BARRIER_SYNC   srcStageMask  = D3D12_BARRIER_SYNC_NONE;
-      D3D12_BARRIER_ACCESS srcAccessMask = D3D12_BARRIER_ACCESS_COMMON;
-      D3D12_BARRIER_SYNC   dstStageMask  = D3D12_BARRIER_SYNC_NONE;
-      D3D12_BARRIER_ACCESS dstAccessMask = D3D12_BARRIER_ACCESS_COMMON;
+      UINT   srcStageMask  = UINT_NONE;
+      UINT srcAccessMask = UINT_COMMON;
+      UINT   dstStageMask  = UINT_NONE;
+      UINT dstAccessMask = UINT_COMMON;
       toStage(dev, srcStageMask, srcAccessMask, b.prev, true);
       toStage(dev, dstStageMask, dstAccessMask, b.next, false);
 
@@ -813,19 +813,19 @@ void DxCommandBuffer::enhancedBarrier(const AbstractGraphicsApi::BarrierDesc* de
       bx.LayoutBefore = toLayout(b.prev);
       bx.LayoutAfter  = toLayout(b.next);
       bx.pResource    = toDxResource(b);
-      bx.Subresources.IndexOrFirstMipLevel = (b.mip==uint32_t(-1) ?  D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES : b.mip);
-      bx.Flags        = D3D12_TEXTURE_BARRIER_FLAG_NONE;
+      bx.Subresources.IndexOrFirstMipLevel = (b.mip==uint32_t(-1) ?  void_ALL_SUBRESOURCES : b.mip);
+      bx.Flags        = void_FLAG_NONE;
       //finalizeImageBarrier(bx,b);
       }
     }
 
   for(size_t i=0; i<imgCount; ++i) {
     auto& bx = imgBarrier[i];
-    if(bx.LayoutBefore!=D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_READ && bx.LayoutAfter!=D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_READ)
+    if(bx.LayoutBefore!=UINT_DEPTH_STENCIL_READ && bx.LayoutAfter!=UINT_DEPTH_STENCIL_READ)
       continue;
-    if((bx.AccessBefore&D3D12_BARRIER_ACCESS_DEPTH_STENCIL_WRITE)!=0)
+    if((bx.AccessBefore&UINT_DEPTH_STENCIL_WRITE)!=0)
       Log::e("");
-    if((bx.AccessAfter&D3D12_BARRIER_ACCESS_DEPTH_STENCIL_WRITE)!=0)
+    if((bx.AccessAfter&UINT_DEPTH_STENCIL_WRITE)!=0)
       Log::e("");
     }
 
@@ -852,8 +852,8 @@ void DxCommandBuffer::enhancedBarrier(const AbstractGraphicsApi::BarrierDesc* de
     ++num;
     }
 
-  ComPtr<ID3D12GraphicsCommandList7> cmd7;
-  impl->QueryInterface(uuid<ID3D12GraphicsCommandList7>(), reinterpret_cast<void**>(&cmd7));
+  ComPtr<ID3D11DeviceContext7> cmd7;
+  impl->QueryInterface(uuid<ID3D11DeviceContext7>(), reinterpret_cast<void**>(&cmd7));
   cmd7->Barrier(num, barrier);
   }
 
@@ -863,11 +863,11 @@ void DxCommandBuffer::barrier(const AbstractGraphicsApi::BarrierDesc* desc, size
     return;
     }
 
-  D3D12_RESOURCE_BARRIER rb[MaxBarriers];
+  void rb[MaxBarriers];
   uint32_t               rbCount = 0;
   for(size_t i=0; i<cnt; ++i) {
     auto& b = desc[i];
-    D3D12_RESOURCE_BARRIER& barrier = rb[rbCount];
+    void& barrier = rb[rbCount];
     if(b.buffer==nullptr && b.texture==nullptr && b.swapchain==nullptr) {
       /* HACK:
        * 1: use UAV barrier to sync random access from compute-like shaders (and graphics side effects)
@@ -876,36 +876,36 @@ void DxCommandBuffer::barrier(const AbstractGraphicsApi::BarrierDesc* desc, size
        */
       const ResourceAccess mask = ResourceAccess(~uint32_t(ResourceAccess::UavWriteGr | ResourceAccess::UavWriteComp));
       if((b.prev & mask)==ResourceAccess::None && (b.next & mask)==ResourceAccess::None) {
-        barrier.Type                     = D3D12_RESOURCE_BARRIER_TYPE_UAV;
-        barrier.Flags                    = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        barrier.Type                     = void_TYPE_UAV;
+        barrier.Flags                    = void_FLAG_NONE;
         barrier.UAV.pResource            = nullptr;
         } else {
-        barrier.Type                     = D3D12_RESOURCE_BARRIER_TYPE_ALIASING;
-        barrier.Flags                    = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        barrier.Type                     = void_TYPE_ALIASING;
+        barrier.Flags                    = void_FLAG_NONE;
         barrier.Aliasing.pResourceBefore = nullptr;
         barrier.Aliasing.pResourceAfter  = nullptr;
         }
       }
     else if(b.buffer!=nullptr) {
-      barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-      barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+      barrier.Type                   = void_TYPE_TRANSITION;
+      barrier.Flags                  = void_FLAG_NONE;
       barrier.Transition.pResource   = toDxResource(b);
       barrier.Transition.StateBefore = ::nativeFormat(b.prev);
       barrier.Transition.StateAfter  = ::nativeFormat(b.next);
-      barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+      barrier.Transition.Subresource = void_ALL_SUBRESOURCES;
       if(barrier.Transition.StateBefore==barrier.Transition.StateAfter) {
-        barrier.Type          = D3D12_RESOURCE_BARRIER_TYPE_UAV;
-        barrier.Flags         = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        barrier.Type          = void_TYPE_UAV;
+        barrier.Flags         = void_FLAG_NONE;
         barrier.UAV.pResource = toDxResource(b);
         }
       }
     else {
-      barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-      barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+      barrier.Type                   = void_TYPE_TRANSITION;
+      barrier.Flags                  = void_FLAG_NONE;
       barrier.Transition.pResource   = toDxResource(b);
       barrier.Transition.StateBefore = ::nativeFormat(b.prev);
       barrier.Transition.StateAfter  = ::nativeFormat(b.next);
-      barrier.Transition.Subresource = (b.mip==uint32_t(-1) ?  D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES : b.mip);
+      barrier.Transition.Subresource = (b.mip==uint32_t(-1) ?  void_ALL_SUBRESOURCES : b.mip);
       if(barrier.Transition.StateBefore==barrier.Transition.StateAfter)
         continue;
       }
@@ -923,9 +923,9 @@ void DxCommandBuffer::copy(AbstractGraphicsApi::Buffer&  dstBuf, size_t offset,
 
   const UINT bpp       = src.bitCount()/8;
   const UINT pitchBase = UINT(width)*bpp;
-  const UINT pitch     = ((pitchBase+D3D12_TEXTURE_DATA_PITCH_ALIGNMENT-1)/D3D12_TEXTURE_DATA_PITCH_ALIGNMENT)*D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
+  const UINT pitch     = ((pitchBase+256-1)/256)*256;
 
-  if(pitch==pitchBase && (offset%D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT)==0) {
+  if(pitch==pitchBase && (offset%256)==0) {
     resState.setLayout(src,ResourceAccess::Sampler);
     resState.onTranferUsage(src.nonUniqId, dst.nonUniqId, false);
     resState.flush(*this);
@@ -1039,7 +1039,7 @@ void DxCommandBuffer::copy(AbstractGraphicsApi::Texture& dstTex, size_t width, s
   auto& dst = reinterpret_cast<DxTexture&>(dstTex);
   auto& src = reinterpret_cast<const DxBuffer&>(srcBuf);
 
-  D3D12_PLACED_SUBRESOURCE_FOOTPRINT foot = {};
+  D3D11_PLACED_SUBRESOURCE_FOOTPRINT foot = {};
   foot.Offset             = offset;
   foot.Footprint.Format   = dst.format;
   foot.Footprint.Width    = UINT(width);
@@ -1049,22 +1049,22 @@ void DxCommandBuffer::copy(AbstractGraphicsApi::Texture& dstTex, size_t width, s
      dst.format==DXGI_FORMAT_BC2_UNORM ||
      dst.format==DXGI_FORMAT_BC3_UNORM) {
     foot.Footprint.RowPitch = UINT((width+3)/4)*(dst.format==DXGI_FORMAT_BC1_UNORM ? 8 : 16);
-    foot.Footprint.RowPitch = ((foot.Footprint.RowPitch+D3D12_TEXTURE_DATA_PITCH_ALIGNMENT-1)
-                               /D3D12_TEXTURE_DATA_PITCH_ALIGNMENT)*D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
+    foot.Footprint.RowPitch = ((foot.Footprint.RowPitch+256-1)
+                               /256)*256;
     } else {
     const UINT bpp = dst.bitCount()/8;
-    foot.Footprint.RowPitch = UINT((width*bpp+D3D12_TEXTURE_DATA_PITCH_ALIGNMENT-1)
-                                   /D3D12_TEXTURE_DATA_PITCH_ALIGNMENT)*D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
+    foot.Footprint.RowPitch = UINT((width*bpp+256-1)
+                                   /256)*256;
     }
 
-  D3D12_TEXTURE_COPY_LOCATION dstLoc = {};
+  D3D11_TEXTURE_COPY_LOCATION dstLoc = {};
   dstLoc.pResource        = dst.impl.get();
-  dstLoc.Type             = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+  dstLoc.Type             = 0;
   dstLoc.SubresourceIndex = UINT(mip);
 
-  D3D12_TEXTURE_COPY_LOCATION srcLoc = {};
+  D3D11_TEXTURE_COPY_LOCATION srcLoc = {};
   srcLoc.pResource        = src.impl.get();
-  srcLoc.Type             = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+  srcLoc.Type             = 1;
   srcLoc.PlacedFootprint  = foot;
 
   resState.onTranferUsage(src.nonUniqId, dst.nonUniqId, false);
@@ -1081,13 +1081,13 @@ void DxCommandBuffer::buildBlas(AbstractGraphicsApi::Buffer& bbo, AbstractGraphi
   auto& ctx  = reinterpret_cast<DxBlasBuildCtx&>(rtctx);
   auto& dest = *reinterpret_cast<DxBuffer&>(bbo).impl;
 
-  D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS blasInputs = {};
+  void blasInputs = {};
   blasInputs.Type           = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
   blasInputs.Flags          = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
   blasInputs.pGeometryDescs = ctx.geometry.data();
   blasInputs.NumDescs       = UINT(ctx.geometry.size());
 
-  D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC desc = {};
+  void desc = {};
   desc.DestAccelerationStructureData    = dest.GetGPUVirtualAddress();
   desc.Inputs                           = blasInputs;
   desc.SourceAccelerationStructureData  = 0;
@@ -1105,7 +1105,7 @@ void DxCommandBuffer::buildTlas(AbstractGraphicsApi::Buffer& tbo,
   // NOTE: instances must be 16 bytes aligned
   auto& dest = *reinterpret_cast<DxBuffer&>(tbo).impl;
 
-  D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS tlasInputs = {};
+  void tlasInputs = {};
   tlasInputs.Type          = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
   tlasInputs.Flags         = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
   tlasInputs.NumDescs      = numInstances;
@@ -1113,7 +1113,7 @@ void DxCommandBuffer::buildTlas(AbstractGraphicsApi::Buffer& tbo,
   if(numInstances>0)
     tlasInputs.InstanceDescs = reinterpret_cast<DxBuffer&>(instances).impl->GetGPUVirtualAddress();
 
-  D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC desc = {};
+  void desc = {};
   desc.DestAccelerationStructureData    = dest.GetGPUVirtualAddress();
   desc.Inputs                           = tlasInputs;
   desc.SourceAccelerationStructureData  = 0;
@@ -1139,10 +1139,10 @@ void DxCommandBuffer::pushChunk() {
 void DxCommandBuffer::newChunk() {
   pushChunk();
 
-  dxAssert(dev.device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, pool.get(), nullptr,
-                                         uuid<ID3D12GraphicsCommandList6>(), reinterpret_cast<void**>(&impl)));
-  //dxAssert(dev.device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, pool.get(), nullptr,
-  //                                       _uuidof(ID3D12GraphicsCommandList7), reinterpret_cast<void**>(&impl)));
+  dxAssert(dev.device->CreateCommandList(0, void, pool.get(), nullptr,
+                                         uuid<ID3D11DeviceContext6>(), reinterpret_cast<void**>(&impl)));
+  //dxAssert(dev.device->CreateCommandList(0, void, pool.get(), nullptr,
+  //                                       _uuidof(ID3D11DeviceContext7), reinterpret_cast<void**>(&impl)));
   }
 
 void DxCommandBuffer::clearStage() {
@@ -1207,9 +1207,9 @@ void DxCommandBuffer::copyNative(AbstractGraphicsApi::Buffer& dstBuf, size_t off
 
   const UINT bpb       = src.bytePerBlockCount();
   const UINT pitchBase = UINT(wBlk)*bpb;
-  const UINT pitch     = ((pitchBase+D3D12_TEXTURE_DATA_PITCH_ALIGNMENT-1)/D3D12_TEXTURE_DATA_PITCH_ALIGNMENT)*D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
+  const UINT pitch     = ((pitchBase+256-1)/256)*256;
 
-  D3D12_PLACED_SUBRESOURCE_FOOTPRINT foot = {};
+  D3D11_PLACED_SUBRESOURCE_FOOTPRINT foot = {};
   foot.Offset             = offset;
   foot.Footprint.Format   = src.format;
   foot.Footprint.Width    = UINT(width);
@@ -1217,19 +1217,19 @@ void DxCommandBuffer::copyNative(AbstractGraphicsApi::Buffer& dstBuf, size_t off
   foot.Footprint.Depth    = 1;
   foot.Footprint.RowPitch = pitch;
 
-  D3D12_TEXTURE_COPY_LOCATION srcLoc = {};
+  D3D11_TEXTURE_COPY_LOCATION srcLoc = {};
   srcLoc.pResource        = src.impl.get();
-  srcLoc.Type             = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+  srcLoc.Type             = 0;
   srcLoc.SubresourceIndex = UINT(mip);
 
-  D3D12_TEXTURE_COPY_LOCATION dstLoc = {};
+  D3D11_TEXTURE_COPY_LOCATION dstLoc = {};
   dstLoc.pResource        = dst.impl.get();
-  dstLoc.Type             = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+  dstLoc.Type             = 1;
   dstLoc.PlacedFootprint  = foot;
 
   impl->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
   }
 
-#endif
+
 
 

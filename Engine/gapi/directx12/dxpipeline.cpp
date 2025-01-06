@@ -20,27 +20,27 @@ struct D3DX12_MESH_SHADER_PIPELINE_STATE_DESC {
   ID3D12RootSignature*          pRootSignature = nullptr;
 
   D3D12_PIPELINE_STATE_SUBOBJECT_TYPE _Type3 = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS;
-  D3D12_SHADER_BYTECODE         PS = {};
+  void         PS = {};
 
   D3D12_PIPELINE_STATE_SUBOBJECT_TYPE _Type4 = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_AS;
-  D3D12_SHADER_BYTECODE         AS = {};
+  void         AS = {};
 
   D3D12_PIPELINE_STATE_SUBOBJECT_TYPE _Type5 = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_MS;
-  D3D12_SHADER_BYTECODE         MS = {};
+  void         MS = {};
 
   D3D12_PIPELINE_STATE_SUBOBJECT_TYPE _Type6 = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_BLEND;
-  D3D12_BLEND_DESC              BlendState = {};
+  D3D11_BLEND_DESC              BlendState = {};
   uint32_t                      padd0 = 0;
 
   D3D12_PIPELINE_STATE_SUBOBJECT_TYPE _Type7 = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL1;
-  D3D12_DEPTH_STENCIL_DESC1     DepthStencilState = {};
+  D3D11_DEPTH_STENCIL_DESC1     DepthStencilState = {};
   uint32_t                      padd1 = 0;
 
   D3D12_PIPELINE_STATE_SUBOBJECT_TYPE _Type8 = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL_FORMAT;
   DXGI_FORMAT                   DSVFormat = DXGI_FORMAT_UNKNOWN;
 
   D3D12_PIPELINE_STATE_SUBOBJECT_TYPE _Type9 = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RASTERIZER;
-  D3D12_RASTERIZER_DESC         RasterizerState = {};
+  D3D11_RASTERIZER_DESC         RasterizerState = {};
 
   D3D12_PIPELINE_STATE_SUBOBJECT_TYPE _Type10 = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RENDER_TARGET_FORMATS;
   D3D12_RT_FORMAT_ARRAY         RTVFormats = {};
@@ -56,7 +56,7 @@ struct D3DX12_MESH_SHADER_PIPELINE_STATE_DESC {
   D3D12_CACHED_PIPELINE_STATE   CachedPSO = {};
 
   D3D12_PIPELINE_STATE_SUBOBJECT_TYPE _Type14 = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VIEW_INSTANCING;
-  D3D12_VIEW_INSTANCING_DESC    ViewInstancingDesc = {};
+  void    ViewInstancingDesc = {};
   };
 
 DxPipeline::DxPipeline(DxDevice& device,
@@ -79,7 +79,7 @@ DxPipeline::DxPipeline(DxDevice& device,
 
   if(auto vert = findShader(ShaderReflection::Vertex)) {
     declSize = UINT(vert->vdecl.size());
-    vsInput.reset(new D3D12_INPUT_ELEMENT_DESC[declSize]);
+    vsInput.reset(new D3D11_INPUT_ELEMENT_DESC[declSize]);
     uint32_t offset=0;
     for(size_t i=0;i<declSize;++i){
       auto& loc=vsInput[i];
@@ -96,14 +96,14 @@ DxPipeline::DxPipeline(DxDevice& device,
     }
   }
 
-ID3D12PipelineState& DxPipeline::instance(DXGI_FORMAT frm) {
+ID3D11DeviceChild& DxPipeline::instance(DXGI_FORMAT frm) {
   DxFboLayout lay;
   lay.RTVFormats[0]    = frm;
   lay.NumRenderTargets = 1;
   return instance(lay);
   }
 
-ID3D12PipelineState& DxPipeline::instance(const DxFboLayout& frm) {
+ID3D11DeviceChild& DxPipeline::instance(const DxFboLayout& frm) {
   std::lock_guard<SpinLock> guard(sync);
 
   for(auto& i:inst) {
@@ -132,7 +132,7 @@ const DxShader* DxPipeline::findShader(ShaderReflection::Stage sh) const {
   return nullptr;
   }
 
-D3D12_BLEND_DESC DxPipeline::getBlend(const RenderState& st) const {
+D3D11_BLEND_DESC DxPipeline::getBlend(const RenderState& st) const {
   D3D12_RENDER_TARGET_BLEND_DESC b;
   b.BlendEnable           = st.hasBlend() ? TRUE : FALSE;
   b.SrcBlend              = nativeFormat(st.blendSource());
@@ -145,7 +145,7 @@ D3D12_BLEND_DESC DxPipeline::getBlend(const RenderState& st) const {
   b.LogicOp               = D3D12_LOGIC_OP_CLEAR;
   b.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
-  D3D12_BLEND_DESC d = {};
+  D3D11_BLEND_DESC d = {};
   d.AlphaToCoverageEnable  = FALSE;
   d.IndependentBlendEnable = FALSE;
   for(auto& i:d.RenderTarget)
@@ -154,8 +154,8 @@ D3D12_BLEND_DESC DxPipeline::getBlend(const RenderState& st) const {
   return d;
   }
 
-D3D12_RASTERIZER_DESC DxPipeline::getRaster(const RenderState& st) const {
-  D3D12_RASTERIZER_DESC rd = {};
+D3D11_RASTERIZER_DESC DxPipeline::getRaster(const RenderState& st) const {
+  D3D11_RASTERIZER_DESC rd = {};
   rd.FillMode              = D3D12_FILL_MODE_SOLID;
   //rd.FillMode              = D3D12_FILL_MODE_WIREFRAME;
   rd.CullMode              = nativeFormat(st.cullFaceMode());
@@ -163,15 +163,15 @@ D3D12_RASTERIZER_DESC DxPipeline::getRaster(const RenderState& st) const {
   return rd;
   }
 
-D3D12_DEPTH_STENCIL_DESC DxPipeline::getDepth(const RenderState& st, DXGI_FORMAT depthFrm) const {
-  D3D12_DEPTH_STENCIL_DESC1 ds1 = getDepth1(st, depthFrm);
-  D3D12_DEPTH_STENCIL_DESC  ds  = {};
+D3D11_DEPTH_STENCIL_DESC DxPipeline::getDepth(const RenderState& st, DXGI_FORMAT depthFrm) const {
+  D3D11_DEPTH_STENCIL_DESC1 ds1 = getDepth1(st, depthFrm);
+  D3D11_DEPTH_STENCIL_DESC  ds  = {};
   std::memcpy(&ds, &ds1, sizeof(ds)); // binary compatible
   return ds;
   }
 
-D3D12_DEPTH_STENCIL_DESC1 DxPipeline::getDepth1(const RenderState& st, DXGI_FORMAT depthFrm) const {
-  D3D12_DEPTH_STENCIL_DESC1 ds = {};
+D3D11_DEPTH_STENCIL_DESC1 DxPipeline::getDepth1(const RenderState& st, DXGI_FORMAT depthFrm) const {
+  D3D11_DEPTH_STENCIL_DESC1 ds = {};
   if(depthFrm==DXGI_FORMAT_UNKNOWN) {
     ds.DepthEnable = FALSE;
     return ds;
@@ -184,12 +184,12 @@ D3D12_DEPTH_STENCIL_DESC1 DxPipeline::getDepth1(const RenderState& st, DXGI_FORM
   if(ds.DepthWriteMask!=D3D12_DEPTH_WRITE_MASK_ZERO && ds.DepthEnable==FALSE) {
     // Testing: DX seem to behave same as Vulkan, while been undocumented
     ds.DepthEnable = TRUE;
-    ds.DepthFunc   = D3D12_COMPARISON_FUNC_ALWAYS;
+    ds.DepthFunc   = D3D11_COMPARISON_FUNC_ALWAYS;
     }
   return ds;
   }
 
-ComPtr<ID3D12PipelineState> DxPipeline::initGraphicsPipeline(const DxFboLayout& frm) {
+ComPtr<ID3D11DeviceChild> DxPipeline::initGraphicsPipeline(const DxFboLayout& frm) {
   D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
   psoDesc.InputLayout     = { vsInput.get(), UINT(declSize) };
   psoDesc.pRootSignature  = sign.get();
@@ -212,27 +212,27 @@ ComPtr<ID3D12PipelineState> DxPipeline::initGraphicsPipeline(const DxFboLayout& 
 
   switch(topology) {
     case D3D_PRIMITIVE_TOPOLOGY_POINTLIST:
-      psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+      psoDesc.PrimitiveTopologyType = D3D11_PRIMITIVE_TOPOLOGY_TYPE_POINT;
       break;
     case D3D_PRIMITIVE_TOPOLOGY_LINELIST:
     case D3D_PRIMITIVE_TOPOLOGY_LINELIST_ADJ:
     case D3D_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ:
     case D3D_PRIMITIVE_TOPOLOGY_LINESTRIP:
-      psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+      psoDesc.PrimitiveTopologyType = D3D11_PRIMITIVE_TOPOLOGY_TYPE_LINE;
       break;
     case D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST:
     case D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP:
     case D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ:
     case D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ:
-      psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+      psoDesc.PrimitiveTopologyType = D3D11_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
       break;
     case D3D_PRIMITIVE_TOPOLOGY_UNDEFINED:
     default:
       assert(0);
     }
 
-  ComPtr<ID3D12PipelineState> ret;
-  auto err = device.device->CreateGraphicsPipelineState(&psoDesc, uuid<ID3D12PipelineState>(), reinterpret_cast<void**>(&ret.get()));
+  ComPtr<ID3D11DeviceChild> ret;
+  auto err = device.device->CreateGraphicsPipelineState(&psoDesc, uuid<ID3D11DeviceChild>(), reinterpret_cast<void**>(&ret.get()));
   if(FAILED(err)) {
     dxAssert(err);
     }
@@ -240,7 +240,7 @@ ComPtr<ID3D12PipelineState> DxPipeline::initGraphicsPipeline(const DxFboLayout& 
   }
 
 
-ComPtr<ID3D12PipelineState> DxPipeline::initMeshPipeline(const DxFboLayout& frm) {
+ComPtr<ID3D11DeviceChild> DxPipeline::initMeshPipeline(const DxFboLayout& frm) {
   D3DX12_MESH_SHADER_PIPELINE_STATE_DESC psoDesc;
   psoDesc.pRootSignature  = sign.get();
   if(auto sh = findShader(ShaderReflection::Task))
@@ -272,17 +272,17 @@ ComPtr<ID3D12PipelineState> DxPipeline::initMeshPipeline(const DxFboLayout& frm)
   psoDesc.SampleDesc.Quality    = 0;
   psoDesc.SampleDesc.Count      = 1;
 
-  ComPtr<ID3D12PipelineState> ret;
-  //auto err = device.device->CreateGraphicsPipelineState(&psoDesc, uuid<ID3D12PipelineState>(), reinterpret_cast<void**>(&ret.get()));
+  ComPtr<ID3D11DeviceChild> ret;
+  //auto err = device.device->CreateGraphicsPipelineState(&psoDesc, uuid<ID3D11DeviceChild>(), reinterpret_cast<void**>(&ret.get()));
   // Populate the stream desc with our defined PSO descriptor
   D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = {};
   streamDesc.SizeInBytes                   = sizeof(psoDesc);
   streamDesc.pPipelineStateSubobjectStream = &psoDesc;
 
-  ComPtr<ID3D12Device2> dev;
-  device.device->QueryInterface(uuid<ID3D12Device2>(), reinterpret_cast<void**>(&dev));
+  ComPtr<ID3D11Device2> dev;
+  device.device->QueryInterface(uuid<ID3D11Device2>(), reinterpret_cast<void**>(&dev));
 
-  auto err = dev->CreatePipelineState(&streamDesc, uuid<ID3D12PipelineState>(), reinterpret_cast<void**>(&ret.get()));
+  auto err = dev->CreatePipelineState(&streamDesc, uuid<ID3D11DeviceChild>(), reinterpret_cast<void**>(&ret.get()));
   if(FAILED(err)) {
     for(auto& i:modules)
       if(i.handler!=nullptr)
@@ -304,12 +304,12 @@ DxCompPipeline::DxCompPipeline(DxDevice& device, const DxPipelineLay& ulay, DxSh
   psoDesc.pRootSignature = sign.get();
   psoDesc.CS             = comp.bytecode();
 
-  dxAssert(device.device->CreateComputePipelineState(&psoDesc, uuid<ID3D12PipelineState>(), reinterpret_cast<void**>(&impl)));
+  dxAssert(device.device->CreateComputePipelineState(&psoDesc, uuid<ID3D11DeviceChild>(), reinterpret_cast<void**>(&impl)));
   }
 
 IVec3 DxCompPipeline::workGroupSize() const {
   return wgSize;
   }
 
-#endif
+
 

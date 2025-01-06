@@ -53,12 +53,12 @@ void DxFence::reset() {
   dxAssert(impl->Signal(Waiting));
   }
 
-void DxFence::signal(ID3D12CommandQueue& queue) {
+void DxFence::signal(void& queue) {
   signal(queue,DxFence::Ready);
   }
 
-void DxFence::signal(ID3D12CommandQueue& queue, UINT64 val) {
+void DxFence::signal(void& queue, UINT64 val) {
   dxAssert(queue.Signal(impl.get(),val), device);
   }
 
-#endif
+

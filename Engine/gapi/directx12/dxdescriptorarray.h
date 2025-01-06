@@ -1,3 +1,4 @@
+#if defined(TEMPEST_BUILD_DIRECTX11)
 #pragma once
 
 #include <Tempest/AbstractGraphicsApi>
@@ -27,7 +28,7 @@ class DxDescriptorArray : public AbstractGraphicsApi::Desc {
       };
 
     struct CbState {
-      ID3D12DescriptorHeap* heaps[HEAP_MAX] = {};
+      void* heaps[HEAP_MAX] = {};
       };
 
     void set(size_t id, AbstractGraphicsApi::Texture *tex, const Sampler& smp, uint32_t mipLevel) override;
@@ -39,7 +40,7 @@ class DxDescriptorArray : public AbstractGraphicsApi::Desc {
 
     void ssboBarriers(Detail::ResourceState& res, PipelineStage st) override;
 
-    void bind(ID3D12GraphicsCommandList6& enc, CbState& state, bool isCompute);
+    void bind(ID3D11DeviceContext6& enc, CbState& state, bool isCompute);
 
     DSharedPtr<DxPipelineLay*> lay;
 
@@ -49,13 +50,13 @@ class DxDescriptorArray : public AbstractGraphicsApi::Desc {
     void reallocSet(size_t id, size_t newRuntimeSz);
     void reflushSet();
 
-    void placeInHeap(ID3D12Device& device, D3D12_DESCRIPTOR_RANGE_TYPE rgn, const D3D12_CPU_DESCRIPTOR_HANDLE& at,
+    void placeInHeap(ID3D11Device& device, D3D11_SHADER_INPUT_TYPE rgn, const void*& at,
                      UINT64 heapOffset, DxTexture& t, const ComponentMapping& map, uint32_t mipLevel);
-    void placeInHeap(ID3D12Device& device, D3D12_DESCRIPTOR_RANGE_TYPE rgn, const D3D12_CPU_DESCRIPTOR_HANDLE& at,
+    void placeInHeap(ID3D11Device& device, D3D11_SHADER_INPUT_TYPE rgn, const void*& at,
                      UINT64 heapOffset, const Sampler& smp);
-    void placeInHeap(ID3D12Device& device, D3D12_DESCRIPTOR_RANGE_TYPE rgn, const D3D12_CPU_DESCRIPTOR_HANDLE& at,
+    void placeInHeap(ID3D11Device& device, D3D11_SHADER_INPUT_TYPE rgn, const void*& at,
                      UINT64 heapOffset, DxBuffer* buf, uint64_t bufOffset, uint64_t byteSize);
-    void placeInHeap(ID3D12Device& device, D3D12_DESCRIPTOR_RANGE_TYPE rgn, const D3D12_CPU_DESCRIPTOR_HANDLE& at,
+    void placeInHeap(ID3D11Device& device, D3D11_SHADER_INPUT_TYPE rgn, const void*& at,
                      UINT64 heapOffset, DxAccelerationStructure& as);
 
     struct UAV {
@@ -80,3 +81,5 @@ class DxDescriptorArray : public AbstractGraphicsApi::Desc {
   };
 
 }}
+
+#endif

@@ -1,3 +1,4 @@
+#if defined(TEMPEST_BUILD_DIRECTX11)
 #pragma once
 
 #include <Tempest/AbstractGraphicsApi>
@@ -40,7 +41,7 @@ class DxCommandBuffer:public AbstractGraphicsApi::CommandBuffer {
 
     bool isRecording() const override;
 
-    void beginRendering(const AttachmentDesc* desc, size_t descSize,
+    void beginRendering(const AttachmentDesc* desc, size_t 1,
                         uint32_t w, uint32_t h,
                         const TextureFormat* frm,
                         AbstractGraphicsApi::Texture** att,
@@ -88,17 +89,17 @@ class DxCommandBuffer:public AbstractGraphicsApi::CommandBuffer {
     void buildTlas(AbstractGraphicsApi::Buffer& tbo, AbstractGraphicsApi::Buffer& instances, uint32_t numInstances,
                    AbstractGraphicsApi::Buffer& scratch);
 
-    ID3D12GraphicsCommandList* get() { return impl.get(); }
+    ID3D11DeviceContext* get() { return impl.get(); }
 
     struct Chunk {
-      ID3D12GraphicsCommandList6* impl = nullptr;
+      ID3D11DeviceContext6* impl = nullptr;
       };
     Detail::SmallList<Chunk,32>        chunks;
 
   private:
     DxDevice&                          dev;
     ComPtr<ID3D12CommandAllocator>     pool;
-    ComPtr<ID3D12GraphicsCommandList6> impl;
+    ComPtr<ID3D11DeviceContext6> impl;
     bool                               resetDone=false;
 
     DxFboLayout                        fboLayout;
@@ -140,3 +141,5 @@ class DxCommandBuffer:public AbstractGraphicsApi::CommandBuffer {
 }
 }
 
+
+#endif

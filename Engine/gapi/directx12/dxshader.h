@@ -1,3 +1,4 @@
+#if defined(TEMPEST_BUILD_DIRECTX11)
 #pragma once
 
 #include <Tempest/AbstractGraphicsApi>
@@ -24,7 +25,7 @@ class DxShader:public AbstractGraphicsApi::Shader {
 
     using Binding = ShaderReflection::Binding;
 
-    D3D12_SHADER_BYTECODE    bytecode() const;
+    void    bytecode() const;
 
     std::vector<Decl::ComponentType> vdecl;
     std::vector<Binding>             lay;
@@ -42,3 +43,5 @@ class DxShader:public AbstractGraphicsApi::Shader {
   };
 
 }}
+
+#endif

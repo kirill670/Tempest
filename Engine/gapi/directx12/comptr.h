@@ -1,3 +1,4 @@
+#if defined(TEMPEST_BUILD_DIRECTX11)
 #pragma once
 
 #include <algorithm>
@@ -34,3 +35,5 @@ class ComPtr final {
 
 }
 }
+
+#endif

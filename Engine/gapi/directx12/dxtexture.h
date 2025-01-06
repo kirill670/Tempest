@@ -1,3 +1,4 @@
+#if defined(TEMPEST_BUILD_DIRECTX11)
 #pragma once
 
 #include <Tempest/AbstractGraphicsApi>
@@ -14,7 +15,7 @@ class DxDevice;
 class DxTexture : public AbstractGraphicsApi::Texture {
   public:
     DxTexture();
-    DxTexture(ComPtr<ID3D12Resource>&& b, DXGI_FORMAT frm, NonUniqResId nonUniqId,
+    DxTexture(ComPtr<ID3D11Resource>&& b, DXGI_FORMAT frm, NonUniqResId nonUniqId,
               UINT mipCnt, UINT sliceCnt, bool is3D, bool isFilterable);
     DxTexture(DxTexture&& other);
 
@@ -23,7 +24,7 @@ class DxTexture : public AbstractGraphicsApi::Texture {
     UINT     bitCount() const;
     UINT     bytePerBlockCount() const;
 
-    ComPtr<ID3D12Resource> impl;
+    ComPtr<ID3D11Resource> impl;
     DXGI_FORMAT            format       = DXGI_FORMAT_UNKNOWN;
     NonUniqResId           nonUniqId    = NonUniqResId::I_None;
     UINT                   mipCnt       = 1;
@@ -36,11 +37,13 @@ class DxTextureWithRT : public DxTexture {
   public:
     DxTextureWithRT(DxDevice& dev, DxTexture&& base);
 
-    ComPtr<ID3D12DescriptorHeap> heap;
-    D3D12_CPU_DESCRIPTOR_HANDLE  handle;
-    D3D12_CPU_DESCRIPTOR_HANDLE  handleR;
+    ComPtr<void> heap;
+    void*  handle;
+    void*  handleR;
   };
 
 }
 }
 
+
+#endif

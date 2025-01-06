@@ -150,7 +150,6 @@ DxShader::DxShader(const void *source, const size_t src_size) {
     Log::d("cross-compile error: \"",err.what(),"\"");
 #else
     (void)err;
-#endif
     throw std::system_error(Tempest::GraphicsErrc::InvalidShaderModule);
     }
   catch(...) {
@@ -168,7 +167,6 @@ DxShader::DxShader(const void *source, const size_t src_size) {
   if(hr!=S_OK) {
 #if !defined(NDEBUG)
     Log::d(hlsl);
-#endif
     throw std::system_error(Tempest::GraphicsErrc::InvalidShaderModule);
     }
 
@@ -181,8 +179,8 @@ DxShader::DxShader(const void *source, const size_t src_size) {
 DxShader::~DxShader() {
   }
 
-D3D12_SHADER_BYTECODE DxShader::bytecode() const {
-  return D3D12_SHADER_BYTECODE{shader->GetBufferPointer(),shader->GetBufferSize()};
+void DxShader::bytecode() const {
+  return void{shader->GetBufferPointer(),shader->GetBufferSize()};
   }
 
 HRESULT DxShader::compile(ComPtr<ID3DBlob>& shader, const char* hlsl, size_t len, spv::ExecutionModel exec, uint32_t sm) const {
@@ -208,10 +206,9 @@ HRESULT DxShader::compile(ComPtr<ID3DBlob>& shader, const char* hlsl, size_t len
     L"-res-may-alias",
     L"-Wno-ambig-lit-shift", // bitextract in spirv-cross
 #if !defined(NDEBUG)
-    DXC_ARG_DEBUG,
+    L"-Zi",
 #else
     L"-Qstrip_reflect",
-#endif
     };
   uint32_t argc = _countof(argv);
 
@@ -232,7 +229,6 @@ HRESULT DxShader::compile(ComPtr<ID3DBlob>& shader, const char* hlsl, size_t len
   if(pErrors.get()!=nullptr && pErrors->GetStringLength()>0)
     Log::d(reinterpret_cast<const char*>(pErrors->GetStringPointer()));
   }
-#endif
 
   HRESULT hrStatus = 0;
   result->GetStatus(&hrStatus);
@@ -244,4 +240,4 @@ HRESULT DxShader::compile(ComPtr<ID3DBlob>& shader, const char* hlsl, size_t len
   return hr;
   }
 
-#endif
+

@@ -1,3 +1,4 @@
+#if defined(TEMPEST_BUILD_DIRECTX11)
 #pragma once
 
 #include <Tempest/AbstractGraphicsApi>
@@ -28,7 +29,7 @@ class DxPipeline : public AbstractGraphicsApi::Pipeline {
       Inst& operator = (Inst&&)=default;
 
       DxFboLayout                 lay;
-      ComPtr<ID3D12PipelineState> impl;
+      ComPtr<ID3D11DeviceChild> impl;
       };
 
     ComPtr<ID3D12RootSignature> sign;
@@ -37,8 +38,8 @@ class DxPipeline : public AbstractGraphicsApi::Pipeline {
     size_t                      pushConstantId     = 0;
     uint32_t                    pushBaseInstanceId = 0;
 
-    ID3D12PipelineState&        instance(DXGI_FORMAT  frm);
-    ID3D12PipelineState&        instance(const DxFboLayout& frm);
+    ID3D11DeviceChild&        instance(DXGI_FORMAT  frm);
+    ID3D11DeviceChild&        instance(const DxFboLayout& frm);
 
     IVec3                       workGroupSize() const override;
 
@@ -49,18 +50,18 @@ class DxPipeline : public AbstractGraphicsApi::Pipeline {
 
     UINT                        declSize=0;
     RenderState                 rState;
-    std::unique_ptr<D3D12_INPUT_ELEMENT_DESC[]> vsInput;
+    std::unique_ptr<D3D11_INPUT_ELEMENT_DESC[]> vsInput;
 
     std::vector<Inst>           inst;
     SpinLock                    sync;
 
     const DxShader*             findShader(ShaderReflection::Stage sh) const;
-    D3D12_BLEND_DESC            getBlend(const RenderState &st) const;
-    D3D12_RASTERIZER_DESC       getRaster(const RenderState &st) const;
-    D3D12_DEPTH_STENCIL_DESC    getDepth(const RenderState &st, DXGI_FORMAT depthFrm) const;
-    D3D12_DEPTH_STENCIL_DESC1   getDepth1(const RenderState &st, DXGI_FORMAT depthFrm) const;
-    ComPtr<ID3D12PipelineState> initGraphicsPipeline(const DxFboLayout& frm);
-    ComPtr<ID3D12PipelineState> initMeshPipeline(const DxFboLayout& frm);
+    D3D11_BLEND_DESC            getBlend(const RenderState &st) const;
+    D3D11_RASTERIZER_DESC       getRaster(const RenderState &st) const;
+    D3D11_DEPTH_STENCIL_DESC    getDepth(const RenderState &st, DXGI_FORMAT depthFrm) const;
+    D3D11_DEPTH_STENCIL_DESC1   getDepth1(const RenderState &st, DXGI_FORMAT depthFrm) const;
+    ComPtr<ID3D11DeviceChild> initGraphicsPipeline(const DxFboLayout& frm);
+    ComPtr<ID3D11DeviceChild> initMeshPipeline(const DxFboLayout& frm);
   };
 
 class DxCompPipeline : public AbstractGraphicsApi::CompPipeline {
@@ -73,9 +74,11 @@ class DxCompPipeline : public AbstractGraphicsApi::CompPipeline {
     IVec3                       workGroupSize() const;
 
     ComPtr<ID3D12RootSignature> sign;
-    ComPtr<ID3D12PipelineState> impl;
+    ComPtr<ID3D11DeviceChild> impl;
     IVec3                       wgSize;
     size_t                      pushConstantId = 0;
   };
 
 }}
+
+#endif

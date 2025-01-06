@@ -35,8 +35,8 @@ DxBuffer& DxBuffer::operator=(DxBuffer&& other) {
 void DxBuffer::update(const void* data, size_t off, size_t size) {
   auto& dx = *dev;
 
-  D3D12_HEAP_PROPERTIES prop = {};
-  ID3D12Resource&       ret  = *impl;
+  D3D11_BUFFER_DESC prop = {};
+  ID3D11Resource&       ret  = *impl;
   ret.GetHeapProperties(&prop,nullptr);
 
   if(prop.Type==D3D12_HEAP_TYPE_UPLOAD || prop.Type==D3D12_HEAP_TYPE_CUSTOM) {
@@ -53,8 +53,8 @@ void DxBuffer::update(const void* data, size_t off, size_t size) {
 void DxBuffer::fill(uint32_t data, size_t off, size_t size) {
   auto& dx = *dev;
 
-  D3D12_HEAP_PROPERTIES prop = {};
-  ID3D12Resource&       ret  = *impl;
+  D3D11_BUFFER_DESC prop = {};
+  ID3D11Resource&       ret  = *impl;
   ret.GetHeapProperties(&prop,nullptr);
 
   if(prop.Type==D3D12_HEAP_TYPE_UPLOAD || prop.Type==D3D12_HEAP_TYPE_CUSTOM) {
@@ -71,8 +71,8 @@ void DxBuffer::fill(uint32_t data, size_t off, size_t size) {
 void DxBuffer::read(void* data, size_t off, size_t size) {
   auto& dx = *dev;
 
-  D3D12_HEAP_PROPERTIES prop = {};
-  ID3D12Resource&       ret  = *impl;
+  D3D11_BUFFER_DESC prop = {};
+  ID3D11Resource&       ret  = *impl;
   ret.GetHeapProperties(&prop,nullptr);
 
   if(prop.Type==D3D12_HEAP_TYPE_READBACK || prop.Type==D3D12_HEAP_TYPE_CUSTOM) {
@@ -92,7 +92,7 @@ void DxBuffer::read(void* data, size_t off, size_t size) {
   }
 
 void DxBuffer::uploadS3TC(const uint8_t* d, uint32_t w, uint32_t h, uint32_t mipCnt, UINT blockSize) {
-  ID3D12Resource& ret = *impl;
+  ID3D11Resource& ret = *impl;
 
   void*       mapped=nullptr;
   dxAssert(ret.Map(0,nullptr,&mapped));
@@ -105,7 +105,7 @@ void DxBuffer::uploadS3TC(const uint8_t* d, uint32_t w, uint32_t h, uint32_t mip
     UINT hBlk = (h+3)/4;
 
     UINT pitchS = wBlk*blockSize;
-    UINT pitchA = alignTo(pitchS,D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+    UINT pitchA = alignTo(pitchS,256);
 
     for(uint32_t r=0;r<hBlk;++r) {
       std::memcpy(b+stageSize,d+bufferSize,pitchS);
@@ -113,12 +113,12 @@ void DxBuffer::uploadS3TC(const uint8_t* d, uint32_t w, uint32_t h, uint32_t mip
       stageSize  += pitchA;
       }
 
-    stageSize = alignTo(stageSize,D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+    stageSize = alignTo(stageSize,256);
     w = std::max<uint32_t>(1,w/2);
     h = std::max<uint32_t>(1,h/2);
     }
 
-  D3D12_RANGE rgn = {0,sizeInBytes};
+  D3D11_MAPPED_SUBRESOURCE rgn = {0,sizeInBytes};
   ret.Unmap(0,&rgn);
   }
 
@@ -141,7 +141,7 @@ void DxBuffer::updateByStaging(DxBuffer* stage, const void* data, size_t offDst,
   }
 
 void DxBuffer::updateByMapped(DxBuffer& stage, const void* data, size_t off, size_t size) {
-  D3D12_RANGE rgn    = {off,size};
+  D3D11_MAPPED_SUBRESOURCE rgn    = {off,size};
   void*       mapped = nullptr;
   dxAssert(stage.impl->Map(0,nullptr,&mapped));
   mapped = reinterpret_cast<uint8_t*>(mapped)+off;
@@ -168,7 +168,7 @@ void DxBuffer::fillByStaging(DxBuffer* stage, uint32_t data, size_t offDst, size
   }
 
 void DxBuffer::fillByMapped(DxBuffer& stage, uint32_t data, size_t off, size_t size) {
-  D3D12_RANGE rgn    = {off,size};
+  D3D11_MAPPED_SUBRESOURCE rgn    = {off,size};
   void*       mapped = nullptr;
   dxAssert(stage.impl->Map(0,nullptr,&mapped));
   mapped = reinterpret_cast<uint8_t*>(mapped)+off;
@@ -190,7 +190,7 @@ void DxBuffer::readFromStaging(DxBuffer& stage, void* data, size_t off, size_t s
   }
 
 void DxBuffer::readFromMapped(DxBuffer& stage, void* data, size_t off, size_t size) {
-  D3D12_RANGE rgn = {off,size};
+  D3D11_MAPPED_SUBRESOURCE rgn = {off,size};
   void*       mapped=nullptr;
   dxAssert(stage.impl->Map(0,&rgn,&mapped));
   mapped = reinterpret_cast<uint8_t*>(mapped)+off;
@@ -198,4 +198,4 @@ void DxBuffer::readFromMapped(DxBuffer& stage, void* data, size_t off, size_t si
   stage.impl->Unmap(0,nullptr);
   }
 
-#endif
+

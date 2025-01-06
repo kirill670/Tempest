@@ -110,7 +110,7 @@ void DxAllocator::setDevice(DxDevice& d) {
   }
 
 DxBuffer DxAllocator::alloc(const void* mem, size_t size, MemUsage usage, BufferHeap bufFlg) {
-  D3D12_RESOURCE_DESC resDesc={};
+  D3D11_BUFFER_DESC resDesc={};
   resDesc.Dimension          = D3D12_RESOURCE_DIMENSION_BUFFER;
   resDesc.Alignment          = 0;
   resDesc.Width              = size;
@@ -134,7 +134,7 @@ DxBuffer DxAllocator::alloc(const void* mem, size_t size, MemUsage usage, Buffer
     resDesc.Width += 256-resDesc.Width%256;
     }
 
-  D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_COMMON;
+  UINT state = D3D12_RESOURCE_STATE_COMMON;
   if(MemUsage::StorageBuffer==(usage&MemUsage::StorageBuffer)) {
     resDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
     // state = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
@@ -173,9 +173,9 @@ DxBuffer DxAllocator::alloc(const void* mem, size_t size, MemUsage usage, Buffer
   }
 
 DxTexture DxAllocator::alloc(const Pixmap& pm, uint32_t mip, DXGI_FORMAT format) {
-  ComPtr<ID3D12Resource> ret;
+  ComPtr<ID3D11Resource> ret;
 
-  D3D12_RESOURCE_DESC1 resDesc = {};
+  D3D11_BUFFER_DESC1 resDesc = {};
   resDesc.MipLevels          = mip;
   resDesc.Format             = format;
   resDesc.Width              = pm.w();
@@ -192,7 +192,7 @@ DxTexture DxAllocator::alloc(const Pixmap& pm, uint32_t mip, DXGI_FORMAT format)
     }
   resDesc.SamplerFeedbackMipRegion = {};
 
-  D3D12_HEAP_PROPERTIES heapProp={};
+  D3D11_BUFFER_DESC heapProp={};
   heapProp.Type                 = D3D12_HEAP_TYPE_DEFAULT;
   heapProp.CPUPageProperty      = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
   heapProp.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
@@ -200,28 +200,28 @@ DxTexture DxAllocator::alloc(const Pixmap& pm, uint32_t mip, DXGI_FORMAT format)
   heapProp.VisibleNodeMask      = 1;
 
   if(owner->props.enhancedBarriers) {
-    ComPtr<ID3D12Device10> dev10;
-    //device->QueryInterface(uuid<ID3D12Device10>(), reinterpret_cast<void**>(&dev10));
-    device->QueryInterface(_uuidof(ID3D12Device10), reinterpret_cast<void**>(&dev10));
+    ComPtr<ID3D11Device10> dev10;
+    //device->QueryInterface(uuid<ID3D11Device10>(), reinterpret_cast<void**>(&dev10));
+    device->QueryInterface(_uuidof(ID3D11Device10), reinterpret_cast<void**>(&dev10));
     dxAssert(dev10->CreateCommittedResource3(
         &heapProp,
         D3D12_HEAP_FLAG_NONE,
         &resDesc,
-        D3D12_BARRIER_LAYOUT_COPY_DEST,
+        UINT_COPY_DEST,
         nullptr,
         nullptr,
         0, nullptr,
-        uuid<ID3D12Resource>(),
+        uuid<ID3D11Resource>(),
         reinterpret_cast<void**>(&ret)
         ));
     } else {
     dxAssert(device->CreateCommittedResource(
         &heapProp,
         D3D12_HEAP_FLAG_NONE,
-        reinterpret_cast<const D3D12_RESOURCE_DESC*>(&resDesc),
+        reinterpret_cast<const D3D11_BUFFER_DESC*>(&resDesc),
         D3D12_RESOURCE_STATE_COPY_DEST,
         nullptr,
-        uuid<ID3D12Resource>(),
+        uuid<ID3D11Resource>(),
         reinterpret_cast<void**>(&ret)
         ));
     }
@@ -237,11 +237,11 @@ DxTexture DxAllocator::alloc(const Pixmap& pm, uint32_t mip, DXGI_FORMAT format)
   }
 
 DxTexture DxAllocator::alloc(const uint32_t w, const uint32_t h, const uint32_t d, const uint32_t mip, TextureFormat frm, bool imageStore) {
-  D3D12_RESOURCE_STATES state  = D3D12_RESOURCE_STATE_COMMON;
-  D3D12_BARRIER_LAYOUT  layout = D3D12_BARRIER_LAYOUT_COMMON;
-  D3D12_CLEAR_VALUE     clr    = {};
+  UINT state  = D3D12_RESOURCE_STATE_COMMON;
+  UINT  layout = UINT_COMMON;
+  D3D11_CLEAR_VALUE     clr    = {};
 
-  D3D12_RESOURCE_DESC1 resDesc = {}; // binary compatible with D3D12_RESOURCE_DESC, so it's OK
+  D3D11_BUFFER_DESC1 resDesc = {}; // binary compatible with D3D11_BUFFER_DESC, so it's OK
   resDesc.MipLevels          = mip;
   resDesc.Format             = Detail::nativeFormat(frm);
   resDesc.Width              = w;
@@ -249,13 +249,13 @@ DxTexture DxAllocator::alloc(const uint32_t w, const uint32_t h, const uint32_t 
   resDesc.DepthOrArraySize   = std::max<uint32_t>(d, 1);
   if(isDepthFormat(frm)) {
     state                    = D3D12_RESOURCE_STATE_DEPTH_READ;
-    layout                   = D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_READ;
+    layout                   = UINT_DEPTH_STENCIL_READ;
     resDesc.Flags            = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
     clr.DepthStencil.Depth   = 1.f;
     clr.DepthStencil.Stencil = 0;
     } else {
     state                    = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE|D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-    layout                   = D3D12_BARRIER_LAYOUT_SHADER_RESOURCE;
+    layout                   = UINT_SHADER_RESOURCE;
     resDesc.Flags            = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
     clr.Color[0] = 0.f;
     clr.Color[1] = 0.f;
@@ -264,7 +264,7 @@ DxTexture DxAllocator::alloc(const uint32_t w, const uint32_t h, const uint32_t 
     }
   if(imageStore) {
     state          = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-    layout         = D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS;
+    layout         = UINT_UNORDERED_ACCESS;
     resDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
     }
   resDesc.SampleDesc.Count   = 1;
@@ -272,7 +272,7 @@ DxTexture DxAllocator::alloc(const uint32_t w, const uint32_t h, const uint32_t 
   resDesc.Dimension          = d==0 ? D3D12_RESOURCE_DIMENSION_TEXTURE2D : D3D12_RESOURCE_DIMENSION_TEXTURE3D;
   resDesc.SamplerFeedbackMipRegion = {};
 
-  D3D12_HEAP_PROPERTIES heapProp={};
+  D3D11_BUFFER_DESC heapProp={};
   heapProp.Type                 = D3D12_HEAP_TYPE_DEFAULT;
   heapProp.CPUPageProperty      = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
   heapProp.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
@@ -281,11 +281,11 @@ DxTexture DxAllocator::alloc(const uint32_t w, const uint32_t h, const uint32_t 
 
   clr.Format = resDesc.Format;
 
-  ComPtr<ID3D12Resource> ret;
+  ComPtr<ID3D11Resource> ret;
   if(owner->props.enhancedBarriers) {
-    ComPtr<ID3D12Device10> dev10;
-    //device->QueryInterface(uuid<ID3D12Device10>(), reinterpret_cast<void**>(&dev10));
-    device->QueryInterface(_uuidof(ID3D12Device10), reinterpret_cast<void**>(&dev10));
+    ComPtr<ID3D11Device10> dev10;
+    //device->QueryInterface(uuid<ID3D11Device10>(), reinterpret_cast<void**>(&dev10));
+    device->QueryInterface(_uuidof(ID3D11Device10), reinterpret_cast<void**>(&dev10));
 
     dxAssert(dev10->CreateCommittedResource3(
         &heapProp,
@@ -295,17 +295,17 @@ DxTexture DxAllocator::alloc(const uint32_t w, const uint32_t h, const uint32_t 
         &clr,
         nullptr,
         0, nullptr,
-        uuid<ID3D12Resource>(),
+        uuid<ID3D11Resource>(),
         reinterpret_cast<void**>(&ret)
         ));
     } else {
     dxAssert(device->CreateCommittedResource(
                &heapProp,
                D3D12_HEAP_FLAG_NONE,
-               reinterpret_cast<const D3D12_RESOURCE_DESC*>(&resDesc),
+               reinterpret_cast<const D3D11_BUFFER_DESC*>(&resDesc),
                state,
                &clr,
-               uuid<ID3D12Resource>(),
+               uuid<ID3D11Resource>(),
                reinterpret_cast<void**>(&ret)
                ));
     }
@@ -326,7 +326,7 @@ void DxAllocator::free(Allocation& page) {
   }
 
 bool DxAllocator::commit(ID3D12Heap* heap, std::mutex& mmapSync,
-                         ID3D12Resource*& dest, const D3D12_RESOURCE_DESC& resDesc, D3D12_RESOURCE_STATES state,
+                         ID3D11Resource*& dest, const D3D11_BUFFER_DESC& resDesc, UINT state,
                          size_t offset, const void* mem, size_t size) {
   std::lock_guard<std::mutex> g(mmapSync);
   auto err = device->CreatePlacedResource(heap,
@@ -334,12 +334,12 @@ bool DxAllocator::commit(ID3D12Heap* heap, std::mutex& mmapSync,
                                           &resDesc,
                                           state,
                                           nullptr,
-                                          uuid<ID3D12Resource>(),
+                                          uuid<ID3D11Resource>(),
                                           reinterpret_cast<void**>(&dest));
   if(FAILED(err))
     return false;
   if(mem!=nullptr) {
-    D3D12_RANGE rgn = {0,resDesc.Width};
+    D3D11_MAPPED_SUBRESOURCE rgn = {0,resDesc.Width};
     void*       mapped=nullptr;
     if(FAILED(dest->Map(0,nullptr,&mapped)))
       return false;
@@ -349,4 +349,4 @@ bool DxAllocator::commit(ID3D12Heap* heap, std::mutex& mmapSync,
   return true;
   }
 
-#endif
+

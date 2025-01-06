@@ -14,4 +14,4 @@ bool DxFboLayout::equals(const DxFboLayout& oth) const {
   return DSVFormat==oth.DSVFormat;
   }
 
-#endif
+

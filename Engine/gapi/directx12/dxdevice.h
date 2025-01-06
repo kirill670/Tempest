@@ -1,3 +1,4 @@
+#if defined(TEMPEST_BUILD_DIRECTX11)
 #pragma once
 
 #include <Tempest/AbstractGraphicsApi>
@@ -136,13 +137,13 @@ inline DXGI_FORMAT nativeSrvFormat(DXGI_FORMAT frm) {
     }
   }
 
-inline D3D12_TEXTURE_ADDRESS_MODE nativeFormat(ClampMode f){
-  static const D3D12_TEXTURE_ADDRESS_MODE vfrm[]={
-    D3D12_TEXTURE_ADDRESS_MODE_BORDER,
-    D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
-    D3D12_TEXTURE_ADDRESS_MODE_MIRROR,
-    D3D12_TEXTURE_ADDRESS_MODE_WRAP,
-    D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+inline D3D11_TEXTURE_ADDRESS_MODE nativeFormat(ClampMode f){
+  static const D3D11_TEXTURE_ADDRESS_MODE vfrm[]={
+    D3D11_TEXTURE_ADDRESS_MODE_BORDER,
+    D3D11_TEXTURE_ADDRESS_MODE_CLAMP,
+    D3D11_TEXTURE_ADDRESS_MODE_MIRROR,
+    D3D11_TEXTURE_ADDRESS_MODE_WRAP,
+    D3D11_TEXTURE_ADDRESS_MODE_WRAP,
     };
   return vfrm[int(f)];
   }
@@ -156,73 +157,73 @@ inline bool nativeIsDepthFormat(DXGI_FORMAT frm) {
   return false;
   }
 
-inline D3D12_BLEND nativeFormat(RenderState::BlendMode b) {
+inline D3D11_BLEND nativeFormat(RenderState::BlendMode b) {
   switch(b) {
-    case RenderState::BlendMode::Zero:             return D3D12_BLEND_ZERO;
-    case RenderState::BlendMode::One:              return D3D12_BLEND_ONE;
-    case RenderState::BlendMode::SrcColor:         return D3D12_BLEND_SRC_COLOR;
-    case RenderState::BlendMode::OneMinusSrcColor: return D3D12_BLEND_INV_SRC_COLOR;
-    case RenderState::BlendMode::SrcAlpha:         return D3D12_BLEND_SRC_ALPHA;
-    case RenderState::BlendMode::OneMinusSrcAlpha: return D3D12_BLEND_INV_SRC_ALPHA;
-    case RenderState::BlendMode::DstAlpha:         return D3D12_BLEND_DEST_ALPHA;
-    case RenderState::BlendMode::OneMinusDstAlpha: return D3D12_BLEND_INV_DEST_ALPHA;
-    case RenderState::BlendMode::DstColor:         return D3D12_BLEND_DEST_COLOR;
-    case RenderState::BlendMode::OneMinusDstColor: return D3D12_BLEND_INV_DEST_COLOR;
-    case RenderState::BlendMode::SrcAlphaSaturate: return D3D12_BLEND_SRC_ALPHA_SAT;
+    case RenderState::BlendMode::Zero:             return D3D11_BLEND_ZERO;
+    case RenderState::BlendMode::One:              return D3D11_BLEND_ONE;
+    case RenderState::BlendMode::SrcColor:         return D3D11_BLEND_SRC_COLOR;
+    case RenderState::BlendMode::OneMinusSrcColor: return D3D11_BLEND_INV_SRC_COLOR;
+    case RenderState::BlendMode::SrcAlpha:         return D3D11_BLEND_SRC_ALPHA;
+    case RenderState::BlendMode::OneMinusSrcAlpha: return D3D11_BLEND_INV_SRC_ALPHA;
+    case RenderState::BlendMode::DstAlpha:         return D3D11_BLEND_DEST_ALPHA;
+    case RenderState::BlendMode::OneMinusDstAlpha: return D3D11_BLEND_INV_DEST_ALPHA;
+    case RenderState::BlendMode::DstColor:         return D3D11_BLEND_DEST_COLOR;
+    case RenderState::BlendMode::OneMinusDstColor: return D3D11_BLEND_INV_DEST_COLOR;
+    case RenderState::BlendMode::SrcAlphaSaturate: return D3D11_BLEND_SRC_ALPHA_SAT;
     }
-  return D3D12_BLEND_ZERO;
+  return D3D11_BLEND_ZERO;
   }
 
 // NOTE: need to be coherent with Vulkan backend: https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkBlendFactor.html
-inline D3D12_BLEND nativeABlendFormat(RenderState::BlendMode b) {
+inline D3D11_BLEND nativeABlendFormat(RenderState::BlendMode b) {
   switch(b) {
-    case RenderState::BlendMode::Zero:             return D3D12_BLEND_ZERO;
-    case RenderState::BlendMode::One:              return D3D12_BLEND_ONE;
-    case RenderState::BlendMode::SrcColor:         return D3D12_BLEND_SRC_ALPHA;
-    case RenderState::BlendMode::OneMinusSrcColor: return D3D12_BLEND_INV_SRC_ALPHA;
-    case RenderState::BlendMode::SrcAlpha:         return D3D12_BLEND_SRC_ALPHA;
-    case RenderState::BlendMode::OneMinusSrcAlpha: return D3D12_BLEND_INV_SRC_ALPHA;
-    case RenderState::BlendMode::DstAlpha:         return D3D12_BLEND_DEST_ALPHA;
-    case RenderState::BlendMode::OneMinusDstAlpha: return D3D12_BLEND_INV_DEST_ALPHA;
-    case RenderState::BlendMode::DstColor:         return D3D12_BLEND_DEST_ALPHA;
-    case RenderState::BlendMode::OneMinusDstColor: return D3D12_BLEND_INV_DEST_ALPHA;
-    case RenderState::BlendMode::SrcAlphaSaturate: return D3D12_BLEND_SRC_ALPHA_SAT;
+    case RenderState::BlendMode::Zero:             return D3D11_BLEND_ZERO;
+    case RenderState::BlendMode::One:              return D3D11_BLEND_ONE;
+    case RenderState::BlendMode::SrcColor:         return D3D11_BLEND_SRC_ALPHA;
+    case RenderState::BlendMode::OneMinusSrcColor: return D3D11_BLEND_INV_SRC_ALPHA;
+    case RenderState::BlendMode::SrcAlpha:         return D3D11_BLEND_SRC_ALPHA;
+    case RenderState::BlendMode::OneMinusSrcAlpha: return D3D11_BLEND_INV_SRC_ALPHA;
+    case RenderState::BlendMode::DstAlpha:         return D3D11_BLEND_DEST_ALPHA;
+    case RenderState::BlendMode::OneMinusDstAlpha: return D3D11_BLEND_INV_DEST_ALPHA;
+    case RenderState::BlendMode::DstColor:         return D3D11_BLEND_DEST_ALPHA;
+    case RenderState::BlendMode::OneMinusDstColor: return D3D11_BLEND_INV_DEST_ALPHA;
+    case RenderState::BlendMode::SrcAlphaSaturate: return D3D11_BLEND_SRC_ALPHA_SAT;
     }
-  return D3D12_BLEND_ZERO;
+  return D3D11_BLEND_ZERO;
   }
 
-inline D3D12_BLEND_OP nativeFormat(RenderState::BlendOp op) {
+inline D3D11_BLEND_OP nativeFormat(RenderState::BlendOp op) {
   switch(op) {
-    case RenderState::BlendOp::Add:             return D3D12_BLEND_OP_ADD;
-    case RenderState::BlendOp::Subtract:        return D3D12_BLEND_OP_SUBTRACT;
-    case RenderState::BlendOp::ReverseSubtract: return D3D12_BLEND_OP_REV_SUBTRACT;
-    case RenderState::BlendOp::Min:             return D3D12_BLEND_OP_MIN;
-    case RenderState::BlendOp::Max:             return D3D12_BLEND_OP_MAX;
+    case RenderState::BlendOp::Add:             return D3D11_BLEND_OP_ADD;
+    case RenderState::BlendOp::Subtract:        return D3D11_BLEND_OP_SUBTRACT;
+    case RenderState::BlendOp::ReverseSubtract: return D3D11_BLEND_OP_REV_SUBTRACT;
+    case RenderState::BlendOp::Min:             return D3D11_BLEND_OP_MIN;
+    case RenderState::BlendOp::Max:             return D3D11_BLEND_OP_MAX;
     }
-  return D3D12_BLEND_OP_ADD;
+  return D3D11_BLEND_OP_ADD;
   }
 
-inline D3D12_CULL_MODE nativeFormat(RenderState::CullMode c) {
+inline D3D11_CULL_MODE nativeFormat(RenderState::CullMode c) {
   switch(c) {
-    case RenderState::CullMode::Back:   return D3D12_CULL_MODE_BACK;
-    case RenderState::CullMode::Front:  return D3D12_CULL_MODE_FRONT;
-    case RenderState::CullMode::NoCull: return D3D12_CULL_MODE_NONE;
+    case RenderState::CullMode::Back:   return D3D11_CULL_MODE_BACK;
+    case RenderState::CullMode::Front:  return D3D11_CULL_MODE_FRONT;
+    case RenderState::CullMode::NoCull: return D3D11_CULL_MODE_NONE;
     }
-  return D3D12_CULL_MODE_NONE;
+  return D3D11_CULL_MODE_NONE;
   }
 
-inline D3D12_COMPARISON_FUNC nativeFormat(RenderState::ZTestMode zm) {
+inline D3D11_COMPARISON_FUNC nativeFormat(RenderState::ZTestMode zm) {
   switch(zm) {
-    case RenderState::ZTestMode::Always:  return D3D12_COMPARISON_FUNC_ALWAYS;
-    case RenderState::ZTestMode::Never:   return D3D12_COMPARISON_FUNC_NEVER;
-    case RenderState::ZTestMode::Greater: return D3D12_COMPARISON_FUNC_GREATER;
-    case RenderState::ZTestMode::Less:    return D3D12_COMPARISON_FUNC_LESS;
-    case RenderState::ZTestMode::GEqual:  return D3D12_COMPARISON_FUNC_GREATER_EQUAL;
-    case RenderState::ZTestMode::LEqual:  return D3D12_COMPARISON_FUNC_LESS_EQUAL;
-    case RenderState::ZTestMode::NoEqual: return D3D12_COMPARISON_FUNC_NOT_EQUAL;
-    case RenderState::ZTestMode::Equal:   return D3D12_COMPARISON_FUNC_EQUAL;
+    case RenderState::ZTestMode::Always:  return D3D11_COMPARISON_FUNC_ALWAYS;
+    case RenderState::ZTestMode::Never:   return D3D11_COMPARISON_FUNC_NEVER;
+    case RenderState::ZTestMode::Greater: return D3D11_COMPARISON_FUNC_GREATER;
+    case RenderState::ZTestMode::Less:    return D3D11_COMPARISON_FUNC_LESS;
+    case RenderState::ZTestMode::GEqual:  return D3D11_COMPARISON_FUNC_GREATER_EQUAL;
+    case RenderState::ZTestMode::LEqual:  return D3D11_COMPARISON_FUNC_LESS_EQUAL;
+    case RenderState::ZTestMode::NoEqual: return D3D11_COMPARISON_FUNC_NOT_EQUAL;
+    case RenderState::ZTestMode::Equal:   return D3D11_COMPARISON_FUNC_EQUAL;
     }
-  return D3D12_COMPARISON_FUNC_ALWAYS;
+  return D3D11_COMPARISON_FUNC_ALWAYS;
   }
 
 inline DXGI_FORMAT nativeFormat(Decl::ComponentType t) {
@@ -305,10 +306,10 @@ class DxDevice : public AbstractGraphicsApi::Device {
     struct ApiEntry {
       HRESULT (WINAPI *D3D12CreateDevice)(IUnknown* pAdapter,
                                           D3D_FEATURE_LEVEL MinimumFeatureLevel,
-                                          REFIID riid, // Expected: ID3D12Device
+                                          REFIID riid, // Expected: ID3D11Device
                                           void** ppDevice ) = nullptr;
       HRESULT (WINAPI *D3D12GetDebugInterface)(REFIID riid, void** ppvDebug ) = nullptr;
-      HRESULT (WINAPI *D3D12SerializeRootSignature)(const D3D12_ROOT_SIGNATURE_DESC* pRootSignature,
+      HRESULT (WINAPI *D3D12SerializeRootSignature)(const void* pRootSignature,
                                                     D3D_ROOT_SIGNATURE_VERSION Version,
                                                     ID3DBlob** ppBlob,
                                                     ID3DBlob** ppErrorBlob) = nullptr;
@@ -327,8 +328,8 @@ class DxDevice : public AbstractGraphicsApi::Device {
     void         waitData();
     void         waitIdle() override;
 
-    static void  getProp(IDXGIAdapter1& adapter, ID3D12Device& dev, DxProps& prop);
-    static void  getProp(DXGI_ADAPTER_DESC1& desc, ID3D12Device& dev, DxProps& prop);
+    static void  getProp(IDXGIAdapter1& adapter, ID3D11Device& dev, DxProps& prop);
+    static void  getProp(DXGI_ADAPTER_DESC1& desc, ID3D11Device& dev, DxProps& prop);
     void         submit(DxCommandBuffer& cmd, DxFence* sync);
 
     DataMgr&     dataMgr() { return *data; }
@@ -336,9 +337,9 @@ class DxDevice : public AbstractGraphicsApi::Device {
     ApiEntry                    dllApi;
 
     DxProps                     props;
-    ComPtr<ID3D12Device>        device;
+    ComPtr<ID3D11Device>        device;
     SpinLock                    syncCmdQueue;
-    ComPtr<ID3D12CommandQueue>  cmdQueue;
+    ComPtr<void>  cmdQueue;
 
     ComPtr<ID3D12CommandSignature> drawIndirectSgn;
     ComPtr<ID3D12CommandSignature> drawMeshIndirectSgn;
@@ -368,3 +369,5 @@ class DxDevice : public AbstractGraphicsApi::Device {
   };
 
 }}
+
+#endif

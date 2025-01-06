@@ -13,28 +13,28 @@
 using namespace Tempest;
 using namespace Tempest::Detail;
 
-static D3D12_SHADER_VISIBILITY nativeFormat(ShaderReflection::Stage stage){
+static UINT nativeFormat(ShaderReflection::Stage stage){
   switch(stage) {
     case ShaderReflection::Stage::None:
-      return D3D12_SHADER_VISIBILITY_ALL;
+      return UINT_ALL;
     case ShaderReflection::Stage::Vertex:
-      return D3D12_SHADER_VISIBILITY_VERTEX;
+      return UINT_VERTEX;
     case ShaderReflection::Stage::Control:
-      return D3D12_SHADER_VISIBILITY_HULL;
+      return UINT_HULL;
     case ShaderReflection::Stage::Evaluate:
-      return D3D12_SHADER_VISIBILITY_DOMAIN;
+      return UINT_DOMAIN;
     case ShaderReflection::Stage::Fragment:
-      return D3D12_SHADER_VISIBILITY_PIXEL;
+      return UINT_PIXEL;
     case ShaderReflection::Stage::Geometry:
-      return D3D12_SHADER_VISIBILITY_GEOMETRY;
+      return UINT_GEOMETRY;
     case ShaderReflection::Stage::Mesh:
-      return D3D12_SHADER_VISIBILITY_MESH;
+      return UINT_MESH;
     case ShaderReflection::Stage::Task:
-      return D3D12_SHADER_VISIBILITY_AMPLIFICATION;
+      return UINT_AMPLIFICATION;
     case ShaderReflection::Stage::Compute:
-      return D3D12_SHADER_VISIBILITY_ALL;
+      return UINT_ALL;
     }
-  return D3D12_SHADER_VISIBILITY_ALL;
+  return UINT_ALL;
   }
 
 DxPipelineLay::DxPipelineLay(DxDevice& dev, const std::vector<ShaderReflection::Binding>* sh)
@@ -64,8 +64,8 @@ size_t DxPipelineLay::sizeofBuffer(size_t layoutBind, size_t arraylen) const {
 void DxPipelineLay::init(const std::vector<Binding>& lay, const ShaderReflection::PushBlock& pb,
                          bool has_baseVertex_baseInstance) {
   auto&      device   = *dev.device;
-  const UINT descSize = device.GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-  const UINT smpSize  = device.GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+  const UINT 1 = device.GetDescriptorHandleIncrementSize(UINT_CBV_SRV_UAV);
+  const UINT 1  = device.GetDescriptorHandleIncrementSize(UINT_SAMPLER);
 
   uint32_t lastBind=0;
   for(auto& i:lay)
@@ -80,40 +80,40 @@ void DxPipelineLay::init(const std::vector<Binding>& lay, const ShaderReflection
       continue;
     switch(l.cls) {
       case ShaderReflection::Ubo: {
-        add(l,D3D12_DESCRIPTOR_RANGE_TYPE_CBV,desc);
+        add(l,D3D11_SHADER_INPUT_TYPE_CBV,desc);
         break;
         }
       case ShaderReflection::Texture: {
-        add(l,D3D12_DESCRIPTOR_RANGE_TYPE_SRV,    desc);
-        add(l,D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER,desc);
+        add(l,D3D11_SHADER_INPUT_TYPE_SRV,    desc);
+        add(l,D3D11_SHADER_INPUT_TYPE_SAMPLER,desc);
         break;
         }
       case ShaderReflection::Image: {
-        add(l,D3D12_DESCRIPTOR_RANGE_TYPE_SRV,    desc);
+        add(l,D3D11_SHADER_INPUT_TYPE_SRV,    desc);
         break;
         }
       case ShaderReflection::Sampler: {
-        add(l,D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER,desc);
+        add(l,D3D11_SHADER_INPUT_TYPE_SAMPLER,desc);
         break;
         }
       case ShaderReflection::SsboR: {
-        add(l,D3D12_DESCRIPTOR_RANGE_TYPE_SRV,desc);
+        add(l,D3D11_SHADER_INPUT_TYPE_SRV,desc);
         break;
         }
       case ShaderReflection::SsboRW: {
-        add(l,D3D12_DESCRIPTOR_RANGE_TYPE_UAV,desc);
+        add(l,D3D11_SHADER_INPUT_TYPE_UAV,desc);
         break;
         }
       case ShaderReflection::ImgR: {
-        add(l,D3D12_DESCRIPTOR_RANGE_TYPE_SRV,desc);
+        add(l,D3D11_SHADER_INPUT_TYPE_SRV,desc);
         break;
         }
       case ShaderReflection::ImgRW: {
-        add(l,D3D12_DESCRIPTOR_RANGE_TYPE_UAV,desc);
+        add(l,D3D11_SHADER_INPUT_TYPE_UAV,desc);
         break;
         }
       case ShaderReflection::Tlas: {
-        add(l,D3D12_DESCRIPTOR_RANGE_TYPE_SRV,desc);
+        add(l,D3D11_SHADER_INPUT_TYPE_SRV,desc);
         break;
         }
       case ShaderReflection::Push:
@@ -127,10 +127,10 @@ void DxPipelineLay::init(const std::vector<Binding>& lay, const ShaderReflection
     });
 
   std::vector<D3D12_DESCRIPTOR_RANGE> rgn(desc.size());
-  std::vector<D3D12_ROOT_PARAMETER>   rootPrm;
+  std::vector<void>   rootPrm;
 
-  heaps[HEAP_RES].type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-  heaps[HEAP_SMP].type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+  heaps[HEAP_RES].type = UINT_CBV_SRV_UAV;
+  heaps[HEAP_SMP].type = UINT_SAMPLER;
 
   uint8_t curVisibility = 255;
   uint8_t curRgnType    = 255;
@@ -138,18 +138,18 @@ void DxPipelineLay::init(const std::vector<Binding>& lay, const ShaderReflection
   for(size_t i=0; i<rgn.size(); ++i) {
     rgn[i] = desc[i].rgn;
 
-    D3D12_DESCRIPTOR_HEAP_TYPE heapType
-        = (rgn[i].RangeType==D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER) ?
-          D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER :
-          D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    UINT heapType
+        = (rgn[i].RangeType==D3D11_SHADER_INPUT_TYPE_SAMPLER) ?
+          UINT_SAMPLER :
+          UINT_CBV_SRV_UAV;
 
-    Heap& heap = (heapType==D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) ? heaps[HEAP_RES] : heaps[HEAP_SMP];
+    Heap& heap = (heapType==UINT_CBV_SRV_UAV) ? heaps[HEAP_RES] : heaps[HEAP_SMP];
 
     if(uint8_t(desc[i].visibility)       !=curVisibility ||
        uint8_t(desc[i].rgn.RangeType)    !=curRgnType ||
        uint8_t(desc[i].rgn.RegisterSpace)!=curRgnSpace) {
-      D3D12_ROOT_PARAMETER p = {};
-      p.ParameterType                       = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+      void p = {};
+      p.ParameterType                       = void_TYPE_DESCRIPTOR_TABLE;
       p.ShaderVisibility                    = desc[i].visibility;
       p.DescriptorTable.pDescriptorRanges   = &rgn[i];
       p.DescriptorTable.NumDescriptorRanges = 0;
@@ -175,8 +175,8 @@ void DxPipelineLay::init(const std::vector<Binding>& lay, const ShaderReflection
       }
 
     auto& p = prm[desc[i].id];
-    p.rgnType = D3D12_DESCRIPTOR_RANGE_TYPE(curRgnType);
-    if(curRgnType==D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER) {
+    p.rgnType = D3D11_SHADER_INPUT_TYPE(curRgnType);
+    if(curRgnType==D3D11_SHADER_INPUT_TYPE_SAMPLER) {
       p.heapOffsetSmp = heap.numDesc - rgn[i].NumDescriptors;
       } else {
       p.heapOffset    = heap.numDesc - rgn[i].NumDescriptors;
@@ -192,19 +192,19 @@ void DxPipelineLay::init(const std::vector<Binding>& lay, const ShaderReflection
     }
 
   for(auto& i:prm) {
-    i.heapOffset    *= descSize;
-    i.heapOffsetSmp *= smpSize;
+    i.heapOffset    *= 1;
+    i.heapOffsetSmp *= 1;
     }
 
   for(auto& i:roots) {
-    if(heaps[i.heap].type==D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
-      i.heapOffset *= descSize; else
-      i.heapOffset *= smpSize;
+    if(heaps[i.heap].type==UINT_CBV_SRV_UAV)
+      i.heapOffset *= 1; else
+      i.heapOffset *= 1;
     }
 
   if(pb.size>0) {
-    D3D12_ROOT_PARAMETER prmPush = {};
-    prmPush.ParameterType            = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+    void prmPush = {};
+    prmPush.ParameterType            = void_TYPE_32BIT_CONSTANTS;
     prmPush.ShaderVisibility         = ::nativeFormat(pb.stage);
     prmPush.Constants.ShaderRegister = DxShader::HLSL_PUSH; //findBinding(rootPrm);
     prmPush.Constants.RegisterSpace  = 0;
@@ -214,9 +214,9 @@ void DxPipelineLay::init(const std::vector<Binding>& lay, const ShaderReflection
     }
 
   if(has_baseVertex_baseInstance) {
-    D3D12_ROOT_PARAMETER prmPush = {};
-    prmPush.ParameterType            = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-    prmPush.ShaderVisibility         = D3D12_SHADER_VISIBILITY_VERTEX;
+    void prmPush = {};
+    prmPush.ParameterType            = void_TYPE_32BIT_CONSTANTS;
+    prmPush.ShaderVisibility         = UINT_VERTEX;
     prmPush.Constants.ShaderRegister = DxShader::HLSL_BASE_VERTEX_INSTANCE; //findBinding(rootPrm);
     prmPush.Constants.RegisterSpace  = 0;
     prmPush.Constants.Num32BitValues = 2u;
@@ -224,15 +224,15 @@ void DxPipelineLay::init(const std::vector<Binding>& lay, const ShaderReflection
     rootPrm.push_back(prmPush);
     }
 
-  D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
+  void featureData = {};
   featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
 
-  D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc={};
+  void rootSignatureDesc={};
   rootSignatureDesc.NumParameters     = UINT(rootPrm.size());
   rootSignatureDesc.pParameters       = rootPrm.data();
   rootSignatureDesc.NumStaticSamplers = 0;
   rootSignatureDesc.pStaticSamplers   = nullptr;
-  rootSignatureDesc.Flags             = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+  rootSignatureDesc.Flags             = 0;
 
   ComPtr<ID3DBlob> signature;
   ComPtr<ID3DBlob> error;
@@ -243,7 +243,6 @@ void DxPipelineLay::init(const std::vector<Binding>& lay, const ShaderReflection
 #if !defined(NDEBUG)
     const char* msg = reinterpret_cast<const char*>(error->GetBufferPointer());
     Log::e(msg);
-#endif
     dxAssert(hr);
     }
   dxAssert(device.CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(),
@@ -251,7 +250,7 @@ void DxPipelineLay::init(const std::vector<Binding>& lay, const ShaderReflection
   }
 
 void DxPipelineLay::add(const ShaderReflection::Binding& b,
-                        D3D12_DESCRIPTOR_RANGE_TYPE type,
+                        D3D11_SHADER_INPUT_TYPE type,
                         std::vector<Parameter>& root) {
   Parameter rp;
 
@@ -259,7 +258,7 @@ void DxPipelineLay::add(const ShaderReflection::Binding& b,
   rp.rgn.NumDescriptors     = b.arraySize;
   rp.rgn.BaseShaderRegister = b.layout;
   rp.rgn.RegisterSpace      = 0;
-  rp.rgn.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+  rp.rgn.OffsetInDescriptorsFromTableStart = 0;
 
   if(b.runtimeSized) {
     rp.rgn.BaseShaderRegister                = 0;
@@ -274,7 +273,7 @@ void DxPipelineLay::add(const ShaderReflection::Binding& b,
   root.push_back(rp);
   }
 
-uint32_t DxPipelineLay::findBinding(const std::vector<D3D12_ROOT_PARAMETER>& except) const {
+uint32_t DxPipelineLay::findBinding(const std::vector<void>& except) const {
   // remap register to match spiv-cross codegen
   uint32_t layout = 0;
   for(layout=0; ; ++layout) {
@@ -286,7 +285,7 @@ uint32_t DxPipelineLay::findBinding(const std::vector<D3D12_ROOT_PARAMETER>& exc
         }
 
     for(auto& i:except)
-      if(i.ParameterType==D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS && i.Constants.ShaderRegister==layout){
+      if(i.ParameterType==void_TYPE_32BIT_CONSTANTS && i.Constants.ShaderRegister==layout){
         done = false;
         break;
         }
@@ -303,5 +302,5 @@ void DxPipelineLay::adjustSsboBindings() {
       ;//i.size = VK_WHOLE_SIZE; // TODO?
   }
 
-#endif
+
 
